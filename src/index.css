@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+
+body {
+  font-family: theme('fontFamily.sans');
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.main-container {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+/* ✅ Custom text selection color */
+::selection {
+  background-color: #009c41; /* highlight color */
+  color: #ffffff; /* text color when highlighted */
+}
+
+::-moz-selection {
+  background-color: #009c41;
+  color: #ffffff;
+}
