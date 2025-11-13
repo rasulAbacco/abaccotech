@@ -14,7 +14,7 @@ const allowedOrigins = [
   "https://abaccotech.com",     // 🌐 Your live domain
   "http://localhost:5173",      // 🧑‍💻 Local development
   "http://127.0.0.1:5173"
-];
+]; 
 
 // ✅ Enhanced CORS setup
 app.use(
