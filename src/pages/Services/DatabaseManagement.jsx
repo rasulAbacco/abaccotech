@@ -170,7 +170,7 @@ export default function DatabaseManagement() {
       <section className="container mx-auto px-6 py-24">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Our <span className="bg-gradient-to-r from-green-400 to-emerald-400 text-transparent bg-clip-text">Core Services</span>
+            Our Core Services
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
             Comprehensive database solutions designed to power your business operations
@@ -244,7 +244,7 @@ export default function DatabaseManagement() {
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Technologies We <span className="bg-gradient-to-r from-green-400 to-emerald-400 text-transparent bg-clip-text">Master</span>
+              Technologies We Master 
             </h2>
             <p className="text-gray-400 text-lg">
               Expert support for all major database platforms
@@ -274,7 +274,7 @@ export default function DatabaseManagement() {
       <section className="py-24 container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Why Choose <span className="bg-gradient-to-r from-green-400 to-emerald-400 text-transparent bg-clip-text">Our Services</span>
+            Why Choose  Our Services 
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
             Industry-leading database management with unmatched reliability
