@@ -50,56 +50,76 @@ export default function Pricing() {
     { icon: RefreshCw, title: "Website Renewal Cost", price: "₹4,999/year", description: "Website management & updates" },
   ];
 
-  const handleRazorpayCheckout = async () => {
-    if (!formData.name || !formData.email || !formData.phone) {
-      alert("Please fill all fields.");
-      return;
-    }
+const handleRazorpayCheckout = async () => {
+  
+  // Clean phone number
+  const cleanedPhone = formData.phone.replace(/\D/g, ""); // remove non-numeric
 
-    const res = await fetch(`${API_BASE_URL}/payment/create-order`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...formData,
-        amount: totalAmount,
-        plan: formData.plan,
-        planPrice: formData.planPrice,
-        addOns: selectedAddOns && selectedAddOns.length > 0 ? selectedAddOns : [], // ✅ ensure empty array if none selected
-      }),
+  // Validate Name
+  if (!formData.name.trim()) {
+    alert("Please enter your full name.");
+    return;
+  }
 
+  // Validate Email
+  if (!formData.email.trim()) {
+    alert("Please enter your email address.");
+    return;
+  }
 
+  // Validate Phone
+  if (cleanedPhone.length !== 10) {
+    alert("Please enter a valid 10-digit phone number.");
+    return;
+  }
 
-    });
+  // Save cleaned phone back
+  formData.phone = cleanedPhone;
 
-    const data = await res.json();
+  // Continue with payment
+  const res = await fetch(`${API_BASE_URL}/payment/create-order`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...formData,
+      amount: totalAmount,
+      plan: formData.plan,
+      planPrice: formData.planPrice,
+      addOns: selectedAddOns.length > 0 ? selectedAddOns : [],
+    }),
+  });
 
-    const options = {
-      key: import.meta.env.VITE_RAZORPAY_KEY, 
-      order_id: data.id,
-      amount: data.amount,
-      currency: "INR",
+  const data = await res.json();
+
+  const options = {
+    key: import.meta.env.VITE_RAZORPAY_KEY,
+    order_id: data.id,
+    amount: data.amount,
+    currency: "INR",
+    name: formData.name,
+    description: "Website Package Payment",
+    prefill: {
       name: formData.name,
-      description: "Website Package Payment",
-      prefill: {
-        name: formData.name,
-        email: formData.email,
-        contact: formData.phone,
-      },
-      handler: async function (response) {
-        await fetch(`${API_BASE_URL}/payment/verify-payment`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(response),
-        });
+      email: formData.email,
+      contact: cleanedPhone,   // cleaned number
+    },
 
-        alert("✅ Payment Successful — Invoice sent to your email!");
-        setShowForm(false);
-      },
-      theme: { color: "#22c55e" },
-    };
+    handler: async function (response) {
+      alert("✅ Payment Successful — Invoice will be emailed shortly.");
+      setShowForm(false);
 
-    new window.Razorpay(options).open();
+      fetch(`${API_BASE_URL}/payment/verify-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(response),
+      });
+    },
+    theme: { color: "#22c55e" },
   };
+
+  new window.Razorpay(options).open();
+};
+
 
   return (
     <Layout>
@@ -129,6 +149,7 @@ export default function Pricing() {
                 type="email"
                 name="email"
                 placeholder="Email Address"
+                required
                 onChange={handleInput}
                 className="w-full p-3 bg-gray-100 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
               />
@@ -137,6 +158,7 @@ export default function Pricing() {
                 type="tel"
                 name="phone"
                 placeholder="Phone Number"
+                required
                 onChange={handleInput}
                 className="w-full p-3 bg-gray-100 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
               />
@@ -183,7 +205,7 @@ export default function Pricing() {
 
             {/* Proceed Button */}
             <button
-              className="w-full mt-6 bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-semibold transition shadow-md hover:shadow-lg"
+              className="w-full mt-6 bg-green-600 hover:bg-green-500 text-white py-3 cursor-pointer rounded-lg font-semibold transition shadow-md hover:shadow-lg"
               onClick={handleRazorpayCheckout}
             >
               Proceed to Pay
@@ -191,7 +213,7 @@ export default function Pricing() {
 
             {/* Cancel Button */}
             <button
-              className="w-full mt-3 py-3 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition"
+              className="w-full mt-3 py-3 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition cursor-pointer"
               onClick={() => setShowForm(false)}
             >
               Cancel
