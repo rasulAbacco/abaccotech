@@ -1,4 +1,3 @@
-
 // server.js
 import express from "express";
 import cors from "cors";
@@ -9,21 +8,23 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Allow both local and production frontends
+// 🌍 Allowed Frontend Origins
 const allowedOrigins = [
-  "https://abaccotech.com",     // 🌐 Your live domain
-  "http://localhost:5173",      // 🧑‍💻 Local development
-  "http://127.0.0.1:5173",
-  "https://abaccotech-1.onrender.com",
-  "https://www.abaccotech.com"
-]; 
+  "https://abaccotech.com",          // Live domain
+  "https://www.abaccotech.com",      // Live domain with www
+  "https://abaccotech-1.onrender.com", // Render frontend (if used)
 
-// ✅ Enhanced CORS setup
+  "http://localhost:5173",           // Your Vite frontend (correct one)
+  "http://127.0.0.1:5173"            // Alternate localhost
+];
+
+// 🔥 CORS Middleware
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl)
+      // Allow mobile apps / curl / postman (no origin)
       if (!origin) return callback(null, true);
+
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       } else {
@@ -37,20 +38,24 @@ app.use(
   })
 );
 
+// Parse JSON
 app.use(express.json());
 
-// ✅ Test Route
+// 🟢 Test Route
 app.get("/", (req, res) => {
-  res.send("✅ Razorpay + Prisma Backend Running (CORS Fixed)");
+  res.send("✅ Backend Running — CORS Working!");
 });
 
-// ✅ Payment Routes
+// 🟢 Payment Routes
 app.use("/payment", paymentRoute);
 
-// ✅ Start Server
+// 🟢 Start Server
 app.listen(5000, () => {
-  console.log("✅ Backend running on http://localhost:5000");
+  console.log("🚀 Backend running on http://localhost:5000");
 });
+
+
+
 
 // // server.js
 // import express from "express";

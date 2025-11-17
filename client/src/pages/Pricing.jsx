@@ -4,6 +4,7 @@ import { CheckCircle, Globe, Mail, TrendingUp, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import Layout from "../Components/Layout";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function Pricing() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -51,41 +52,27 @@ export default function Pricing() {
   ];
 
 const handleRazorpayCheckout = async () => {
-  
-  // Clean phone number
-  const cleanedPhone = formData.phone.replace(/\D/g, ""); // remove non-numeric
-
-  // Validate Name
-  if (!formData.name.trim()) {
-    alert("Please enter your full name.");
+  if (!formData.name || !formData.email || !formData.phone) {
+    alert("Please fill all fields.");
     return;
   }
 
-  // Validate Email
-  if (!formData.email.trim()) {
-    alert("Please enter your email address.");
+  if (totalAmount <= 0) {
+    alert("Please select a valid plan.");
     return;
   }
 
-  // Validate Phone
-  if (cleanedPhone.length !== 10) {
-    alert("Please enter a valid 10-digit phone number.");
-    return;
-  }
-
-  // Save cleaned phone back
-  formData.phone = cleanedPhone;
-
-  // Continue with payment
   const res = await fetch(`${API_BASE_URL}/payment/create-order`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...formData,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
       amount: totalAmount,
       plan: formData.plan,
       planPrice: formData.planPrice,
-      addOns: selectedAddOns.length > 0 ? selectedAddOns : [],
+      addOns: selectedAddOns,
     }),
   });
 
@@ -101,25 +88,32 @@ const handleRazorpayCheckout = async () => {
     prefill: {
       name: formData.name,
       email: formData.email,
-      contact: cleanedPhone,   // cleaned number
+      contact: formData.phone,
     },
-
     handler: async function (response) {
-      alert("✅ Payment Successful — Invoice will be emailed shortly.");
-      setShowForm(false);
-
-      fetch(`${API_BASE_URL}/payment/verify-payment`, {
+      await fetch(`${API_BASE_URL}/payment/verify-payment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(response),
+        body: JSON.stringify({
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature,
+        }),
       });
+
+      alert("✅ Payment Successful — Invoice sent to your email!");
+      setShowForm(false);
     },
     theme: { color: "#22c55e" },
   };
+  if (totalAmount <= 0) {
+  alert("Please select a valid plan.");
+  return;
+}
+
 
   new window.Razorpay(options).open();
 };
-
 
   return (
     <Layout>
@@ -149,7 +143,6 @@ const handleRazorpayCheckout = async () => {
                 type="email"
                 name="email"
                 placeholder="Email Address"
-                required
                 onChange={handleInput}
                 className="w-full p-3 bg-gray-100 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
               />
@@ -158,7 +151,6 @@ const handleRazorpayCheckout = async () => {
                 type="tel"
                 name="phone"
                 placeholder="Phone Number"
-                required
                 onChange={handleInput}
                 className="w-full p-3 bg-gray-100 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
               />
@@ -205,7 +197,7 @@ const handleRazorpayCheckout = async () => {
 
             {/* Proceed Button */}
             <button
-              className="w-full mt-6 bg-green-600 hover:bg-green-500 text-white py-3 cursor-pointer rounded-lg font-semibold transition shadow-md hover:shadow-lg"
+              className="w-full mt-6 bg-green-600 hover:bg-green-500 text-white cursor-pointer py-3 rounded-lg font-semibold transition shadow-md hover:shadow-lg"
               onClick={handleRazorpayCheckout}
             >
               Proceed to Pay
@@ -213,7 +205,7 @@ const handleRazorpayCheckout = async () => {
 
             {/* Cancel Button */}
             <button
-              className="w-full mt-3 py-3 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition cursor-pointer"
+              className="w-full mt-3 py-3 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition cursor-pointer "
               onClick={() => setShowForm(false)}
             >
               Cancel
