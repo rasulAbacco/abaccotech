@@ -21,6 +21,7 @@ import {
   Loader2,
   ShieldAlert,
   Inbox,
+  Users,
 } from "lucide-react";
 import DashboardLayout from "../../../Components/DashboardLayout";
 
@@ -56,6 +57,23 @@ const docTypeLabels = {
   OTHER: "Other Document",
 };
 
+// 🆕 Status pill for the Referred Clients table
+const referralStatusStyles = {
+  PAID: "text-green-400 bg-green-500/10 border-green-500/20",
+  ACTIVE: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  TRIAL: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
+};
+
+const ReferralStatusBadge = ({ status }) => (
+  <span
+    className={`text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${
+      referralStatusStyles[status] || "text-gray-400 bg-gray-500/10 border-gray-500/20"
+    }`}
+  >
+    {status || "—"}
+  </span>
+);
+
 export default function UserDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -90,6 +108,9 @@ export default function UserDetails() {
   }, [id]);
 
   const vendor = user?.vendor;
+  // 🆕 Populated by the backend fix in authController.getUserById — the
+  // full list of Referral rows tied to this user's vendor.
+  const referrals = vendor?.referrals || [];
 
   return (
     <DashboardLayout>
@@ -147,6 +168,11 @@ export default function UserDetails() {
                     icon={Gift}
                     label="Referral Code"
                     value={user.referralCode}
+                  />
+                  <InfoRow
+                    icon={Users}
+                    label="Referred Users"
+                    value={user.referredCount ?? 0}
                   />
                   <InfoRow
                     icon={Calendar}
@@ -264,6 +290,66 @@ export default function UserDetails() {
                     ) : (
                       <p className="text-gray-500 text-sm">
                         No documents uploaded.
+                      </p>
+                    )}
+                  </SectionCard>
+
+                  {/* 🆕 Referred Clients */}
+                  <SectionCard title="Referred Clients">
+                    {referrals.length ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm border-collapse min-w-[760px]">
+                          <thead>
+                            <tr className="border-b border-gray-800 text-gray-400 uppercase text-xs tracking-wide">
+                              <th className="py-3 pr-4 font-medium">Referral Website</th>
+                              <th className="py-3 pr-4 font-medium">Referred User</th>
+                              <th className="py-3 pr-4 font-medium">Email</th>
+                              <th className="py-3 pr-4 font-medium">Phone</th>
+                              <th className="py-3 pr-4 font-medium">Plan</th>
+                              <th className="py-3 pr-4 font-medium">Status</th>
+                              <th className="py-3 pr-4 font-medium">Referral Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {referrals.map((referral) => (
+                              <tr
+                                key={referral.id}
+                                className="border-b border-gray-800/60 last:border-0 hover:bg-gray-800/30 transition-colors"
+                              >
+                                <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                                  {referral.website || "—"}
+                                </td>
+                                <td className="py-3 pr-4 text-white font-medium whitespace-nowrap">
+                                  {referral.userName || "—"}
+                                </td>
+                                <td className="py-3 pr-4 text-gray-300">
+                                  {referral.email || "—"}
+                                </td>
+                                <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                                  {referral.phone || "—"}
+                                </td>
+                                <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                                  {referral.plan || "—"}
+                                </td>
+                                <td className="py-3 pr-4">
+                                  <ReferralStatusBadge status={referral.status} />
+                                </td>
+                                <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                                  {referral.createdAt &&
+                                    new Date(referral.createdAt).toLocaleDateString("en-IN", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        This vendor hasn't referred anyone yet.
                       </p>
                     )}
                   </SectionCard>

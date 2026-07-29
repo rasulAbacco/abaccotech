@@ -168,4 +168,17 @@ export const getVendorDetailsByUserId = async (userId) => {
   return getVendorDetails(user.vendor.id);
 };
 
+// 🆕 GET /referral/admin/overview — powers the Admin Dashboard's
+// "Total Vendors" and "Total Referral Users" cards. Unlike the other stats
+// functions above, this one isn't scoped to a single vendor — it's a
+// platform-wide count across every vendor and every referral.
+export const getAdminOverviewStats = async () => {
+  const [totalVendors, totalReferralUsers] = await Promise.all([
+    prisma.vendor.count(),
+    prisma.referral.count(),
+  ]);
+
+  return { totalVendors, totalReferralUsers };
+};
+
 export { ReferralError };

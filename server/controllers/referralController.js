@@ -172,3 +172,26 @@ export const getMyVendorDetails = async (req, res) => {
     });
   }
 };
+
+// 🆕 GET /referral/admin/overview (admin only) — powers the Admin
+// Dashboard's "Total Vendors" and "Total Referral Users" cards.
+export const getAdminOverview = async (req, res) => {
+  try {
+    const overview = await referralService.getAdminOverviewStats();
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin referral overview fetched successfully",
+      data: overview,
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ success: false, message: err.message });
+    }
+    console.error("❌ Get admin referral overview error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching the admin overview.",
+    });
+  }
+};

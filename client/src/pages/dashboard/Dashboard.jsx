@@ -1,15 +1,15 @@
-// src/pages/Dashboard.jsx
-import React from "react";
-import { Briefcase, PhoneCall, RefreshCw, Gift } from "lucide-react";
+// src/pages/dashboard/Dashboard.jsx
+import React, { useEffect, useState } from "react";
+import { Building2, Briefcase, PhoneCall, Globe, Gift, Loader2, ShieldAlert } from "lucide-react";
 import DashboardLayout from "../../Components/DashboardLayout";
 import ReferralCodeBadge from "../../Components/ReferralCodeBadge";
 
-const stats = [
-  { icon: Briefcase, label: "Total Deals", value: "128" },
-  { icon: PhoneCall, label: "Pending Follow-ups", value: "12" },
-  { icon: RefreshCw, label: "Upcoming Renewals", value: "8" },
-  { icon: Gift, label: "Total Referral Users", value: "3" },
-];
+const API_URL = import.meta.env.VITE_API_URL;
+
+// 🆕 Static placeholders for the admin view — no deals/follow-up tracking
+// exists yet, so these stay fixed until that's built out.
+const STATIC_TOTAL_DEALS = 128;
+const STATIC_FOLLOW_UPS = 12;
 
 // TODO: replace with real data from your API
 const recentDeals = [
@@ -37,6 +37,77 @@ const recentDeals = [
 
 export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem("user") || "null");
+  const isAdmin = user?.role === "admin";
+
+  const [stats, setStats] = useState(null); // shape differs by role — see below
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    const fetchAdminOverview = async () => {
+      const res = await fetch(`${API_URL}/referral/admin/overview`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to load the dashboard.");
+
+      return {
+        totalVendors: data.data?.totalVendors ?? 0,
+        totalReferralUsers: data.data?.totalReferralUsers ?? 0,
+      };
+    };
+
+    const fetchVendorOverview = async () => {
+      const res = await fetch(`${API_URL}/referral/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to load your referral stats.");
+
+      const referrals = data.data?.referrals || [];
+      // "Total Referral Websites" = number of distinct source sites
+      // (School CRM, Bounce Cure, etc.) this vendor has referrals from.
+      const distinctWebsites = new Set(referrals.map((r) => r.website)).size;
+
+      return {
+        totalReferralWebsites: distinctWebsites,
+        totalReferralUsers: data.data?.stats?.totalReferrals ?? referrals.length,
+      };
+    };
+
+    const load = async () => {
+      setLoadingStats(true);
+      setStatsError("");
+      try {
+        // 🆕 Same page, two different data sources depending on who's
+        // logged in — admins see the platform-wide overview, everyone
+        // else sees their own vendor/referral stats.
+        const result = isAdmin ? await fetchAdminOverview() : await fetchVendorOverview();
+        setStats(result);
+      } catch (err) {
+        setStatsError(err.message || "Something went wrong while loading the dashboard.");
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
+  const statCards = isAdmin
+    ? [
+        { icon: Building2, label: "Total Vendors", value: stats?.totalVendors ?? 0 },
+        { icon: Briefcase, label: "Total Deals", value: STATIC_TOTAL_DEALS },
+        { icon: PhoneCall, label: "Follow-ups", value: STATIC_FOLLOW_UPS },
+        { icon: Gift, label: "Total Referral Users", value: stats?.totalReferralUsers ?? 0 },
+      ]
+    : [
+        { icon: Globe, label: "Total Referral Websites", value: stats?.totalReferralWebsites ?? 0 },
+        { icon: Gift, label: "Total Referral Users", value: stats?.totalReferralUsers ?? 0 },
+      ];
 
   return (
     <DashboardLayout>
@@ -47,15 +118,30 @@ export default function Dashboard() {
             Welcome back{user?.username ? `, ${user.username}` : ""} 👋
           </h1>
           <p className="text-gray-400 text-sm mt-1">
-            Here's what's happening with your platform today.
+            {isAdmin
+              ? "Here's the platform-wide overview across every vendor and referral."
+              : "Here's what's happening with your platform today."}
           </p>
         </div>
-        <ReferralCodeBadge />
+        {/* 🆕 Referral code only makes sense for a vendor's own dashboard */}
+        {!isAdmin && <ReferralCodeBadge />}
       </div>
 
+      {/* Error */}
+      {statsError && (
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm mb-6">
+          <ShieldAlert className="w-5 h-5 shrink-0" />
+          {statsError}
+        </div>
+      )}
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map(({ icon: Icon, label, value }) => (
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-2 ${
+          isAdmin ? "lg:grid-cols-4" : ""
+        } gap-6 mb-8`}
+      >
+        {statCards.map(({ icon: Icon, label, value }) => (
           <div
             key={label}
             className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 hover:border-green-500/40 transition-all duration-300"
@@ -63,7 +149,9 @@ export default function Dashboard() {
             <div className="w-11 h-11 flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600 rounded-xl mb-4">
               <Icon className="w-5 h-5 text-white" />
             </div>
-            <div className="text-2xl font-bold text-white mb-1">{value}</div>
+            <div className="text-2xl font-bold text-white mb-1">
+              {loadingStats ? <Loader2 className="w-5 h-5 animate-spin" /> : value}
+            </div>
             <div className="text-gray-400 text-sm">{label}</div>
           </div>
         ))}

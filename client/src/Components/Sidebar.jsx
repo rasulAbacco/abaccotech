@@ -10,6 +10,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  User,
 } from "lucide-react";
 
 const allMenuItems = [
@@ -21,6 +22,7 @@ const allMenuItems = [
   { label: "Renewal Cancelled", icon: XCircle, path: "/renewals-cancelled", adminOnly: false },
   { label: "Reports", icon: BarChart3, path: "/reports", adminOnly: false },
   { label: "Settings", icon: Settings, path: "/settings", adminOnly: false },
+  { label: "Admin", icon: User, path: "/admin", adminOnly: false },
 ];
 
 export default function Sidebar() {

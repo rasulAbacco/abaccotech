@@ -167,19 +167,35 @@ export const listUsers = async (req, res) => {
         role: true,
         referralCode: true,
         createdAt: true,
+        vendor: { select: { id: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // referredCount is a placeholder until referral tracking is implemented —
-    // once there's a way to know who was referred by whom, replace this 0
-    // with a real count (e.g. count of users whose "referredBy" == this code).
-    const usersWithPlaceholder = users.map((u) => ({
+    // 🆕 FIXED: referredCount used to be a hard-coded 0 placeholder for
+    // every single user, regardless of how many people they'd actually
+    // referred. It's now the real count of Referral rows tied to each
+    // user's Vendor profile.
+    //
+    // One grouped query gets every vendor's referral count in a single
+    // round-trip (instead of an N+1 query per user), and it's counted
+    // directly against Referral.vendorId rather than relying on a named
+    // Prisma relation field — so this works regardless of whatever the
+    // Vendor -> Referral back-relation happens to be called in your schema.
+    const referralCounts = await prisma.referral.groupBy({
+      by: ["vendorId"],
+      _count: { vendorId: true },
+    });
+    const countByVendorId = new Map(
+      referralCounts.map((row) => [row.vendorId, row._count.vendorId])
+    );
+
+    const usersWithCounts = users.map(({ vendor, ...u }) => ({
       ...u,
-      referredCount: 0,
+      referredCount: vendor ? countByVendorId.get(vendor.id) ?? 0 : 0,
     }));
 
-    return res.status(200).json({ success: true, users: usersWithPlaceholder });
+    return res.status(200).json({ success: true, users: usersWithCounts });
   } catch (err) {
     console.error("❌ listUsers error:", err);
     return res.status(500).json({ message: "Server error" });
@@ -212,9 +228,26 @@ export const getUserById = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // 🆕 FIXED: previously returned a hard-coded referredCount: 0 and no
+    // referred-client data at all. Now fetches the real list of Referral
+    // rows for this user's vendor (if they have one) — powers both the
+    // real referredCount and the "Referred Clients" table on the User
+    // Details page.
+    let referrals = [];
+    if (user.vendor) {
+      referrals = await prisma.referral.findMany({
+        where: { vendorId: user.vendor.id },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      user: { ...user, referredCount: 0 }, // placeholder, see listUsers note
+      user: {
+        ...user,
+        referredCount: referrals.length,
+        vendor: user.vendor ? { ...user.vendor, referrals } : null,
+      },
     });
   } catch (err) {
     console.error("❌ getUserById error:", err);

@@ -1,7 +1,7 @@
 // routes/referral.js
 import express from "express";
 import * as referralController from "../controllers/referralController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, requireAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -11,8 +11,13 @@ const router = express.Router();
 router.post("/register", referralController.registerReferral);
 
 // 🆕 GET /referral/me (protected) — the logged-in vendor's own details + stats +
-// referral list, resolved from the JWT. Powers VendorsList.jsx.
+// referral list, resolved from the JWT. Powers VendorsList.jsx and the
+// User Dashboard's "Total Referral Websites" / "Total Referral Users" cards.
 router.get("/me", protect, referralController.getMyVendorDetails);
+
+// 🆕 GET /referral/admin/overview (admin only) — platform-wide counts
+// (Total Vendors, Total Referral Users) for the Admin Dashboard cards.
+router.get("/admin/overview", protect, requireAdmin, referralController.getAdminOverview);
 
 // 🟢 All referred users for a vendor, newest first
 router.get("/vendor/:vendorId", referralController.getVendorReferrals);
