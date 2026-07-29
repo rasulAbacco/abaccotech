@@ -14,7 +14,7 @@ import {
 import DashboardLayout from "../../Components/DashboardLayout";
 import ReferralCodeBadge from "../../Components/ReferralCodeBadge";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const STATUS_STYLES = {
   PAID: "text-green-400 bg-green-500/10 border-green-500/20",
@@ -99,7 +99,7 @@ export default function VendorsList() {
         <div className="relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
             <div>
-              <h1 className="text-3xl font-bold text-white">Deals</h1>
+              <h1 className="text-3xl font-bold text-white">Vendors</h1>
               <p className="text-gray-400 text-sm mt-1">
                 Referral websites and referred clients at a glance.
               </p>

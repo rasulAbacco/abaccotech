@@ -16,7 +16,7 @@ import {
 const allMenuItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard", adminOnly: false },
   { label: "Vendors", icon: Handshake, path: "/vendors-list", adminOnly: false },
-  { label: "Deals", icon: Handshake, path: "/vendors-lis", adminOnly: false },
+  { label: "Deals", icon: Handshake, path: "/deals", adminOnly: false },
   { label: "Follow Ups", icon: PhoneCall, path: "/follow-ups", adminOnly: false },
   { label: "Renewals", icon: RefreshCw, path: "/renewals", adminOnly: false },
   { label: "Renewal Cancelled", icon: XCircle, path: "/renewals-cancelled", adminOnly: false },

@@ -33,6 +33,7 @@ import Reports from "./pages/dashboard/Reports";
 import Settings from "./pages/dashboard/Settings";
 import Admin from "./pages/dashboard/admin/Admin"
 import UserDetails from "./pages/dashboard/admin/UserDetails"
+import Deals from "./pages/dashboard/Deals";
 
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
          <Route path="/dashboard" element={<Dashboard />} />
          <Route path="/vendors" element={<Vendors />} />
          <Route path="/vendors-list" element={<VendorsList />} />
+         <Route path="/deals" element={<Deals />} />
          <Route path="/admin" element={<Admin />} />
         <Route path="/admin/users/:id" element={<UserDetails />} />
         <Route path="/follow-ups" element={<FollowUps />} />

@@ -9,6 +9,8 @@ import authRoute from "./routes/auth.js";
 import referralRoutes from "./routes/referral.js";
 import schoolSyncRoutes from "./routes/schoolSync.routes.js"; // 🆕 pull-based referral sync (manual trigger)
 import { startSchoolSyncCron } from "./cron/schoolSyncCron.js"; // 🆕 automatic referral sync every 5 minutes
+import motorDeskSyncRoutes from "./routes/motorDeskSync.routes.js"; // 🆕 Motor Desk pull-based referral sync (manual trigger)
+import { startMotorDeskSyncCron } from "./cron/motorDeskSyncCron.js"; // 🆕 automatic Motor Desk referral sync every 5 minutes
 // 🗑️ REMOVED: import { startBounceCureSyncCron } from "./cron/bounceCureSyncCron.js";
 // Both Bounce Cure and School CRM push referrals directly now — this cron
 // job was pulling from an endpoint/env-var setup that's no longer part of
@@ -90,7 +92,15 @@ app.use("/sync/school-crm", schoolSyncRoutes);
 // for the next tick; it never crashes the server or cancels future runs.
 startSchoolSyncCron();
 
+// 🆕 Motor Desk referral sync — same pull-based pattern as School CRM.
+// POST /sync/motor-desk/run (admin-only) for an on-demand/manual trigger.
+app.use("/sync/motor-desk", motorDeskSyncRoutes);
+
+// 🆕 Automatic Motor Desk referral sync every 5 minutes, same pattern as
+// the School CRM cron above.
+startMotorDeskSyncCron();
+
 // 🟢 Start Server
-app.listen(5001, () => {
-  console.log("🚀 Backend running on http://localhost:5001");
+app.listen(5000, () => {
+  console.log("🚀 Backend running on http://localhost:5000");
 });
