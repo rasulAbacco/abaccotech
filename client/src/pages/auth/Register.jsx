@@ -5,21 +5,50 @@ import { Link, useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL ;
 
+const REGISTER_FORM_KEY = "registerFormDraft";
+
 export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(REGISTER_FORM_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore malformed/unavailable storage
+    }
+    return {
+      username: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    };
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(
+    () => localStorage.getItem("acceptedTerms") === "true"
+  );
+
+  const handleTermsChange = (e) => {
+    const checked = e.target.checked;
+    setAgreedToTerms(checked);
+    if (checked) {
+      localStorage.setItem("acceptedTerms", "true");
+    } else {
+      localStorage.removeItem("acceptedTerms");
+    }
+  };
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const updated = { ...form, [e.target.name]: e.target.value };
+    setForm(updated);
+    try {
+      sessionStorage.setItem(REGISTER_FORM_KEY, JSON.stringify(updated));
+    } catch {
+      // storage unavailable (e.g. private browsing) — form still works in-memory
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -28,6 +57,11 @@ export default function Register() {
 
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setError("Please accept the Terms & Conditions to continue.");
       return;
     }
 
@@ -58,6 +92,7 @@ export default function Register() {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      sessionStorage.removeItem(REGISTER_FORM_KEY);
 
       navigate("/sign-in");
     } catch (err) {
@@ -201,9 +236,30 @@ export default function Register() {
               </div>
             </div>
 
+            {/* Terms & Conditions */}
+            <div className="flex items-start gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="agreedToTerms"
+                checked={agreedToTerms}
+                onChange={handleTermsChange}
+                className="mt-1 w-4 h-4 rounded border-gray-700 bg-gray-800/60 text-green-500 focus:ring-2 focus:ring-green-500 focus:ring-offset-0 cursor-pointer"
+              />
+              <label htmlFor="agreedToTerms" className="text-sm text-gray-300 select-none">
+                I have read and agree to the{" "}
+                <Link
+                  to="/terms-and-conditions"
+                  className="text-green-400 hover:text-green-300 font-medium underline underline-offset-2"
+                >
+                  Terms & Conditions
+                </Link>
+                .
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !agreedToTerms}
               className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold py-3 rounded-xl hover:shadow-lg hover:shadow-green-500/30 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {loading ? "Creating account..." : "Create Account"}

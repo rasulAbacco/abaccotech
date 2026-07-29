@@ -34,6 +34,7 @@ import Settings from "./pages/dashboard/Settings";
 import Admin from "./pages/dashboard/admin/Admin"
 import UserDetails from "./pages/dashboard/admin/UserDetails"
 import Deals from "./pages/dashboard/Deals";
+import TermsAndConditions from "./pages/TermsAndConditions";
 
 
 function App() {
@@ -59,7 +60,7 @@ function App() {
         <Route path="/terms" element={<TermsService />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/success" element={<Success />} />
-       
+       <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/sign-in" element={<Login />} />
         <Route path="/sign-up" element={<Register />} />
 
