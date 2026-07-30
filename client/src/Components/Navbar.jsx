@@ -91,9 +91,9 @@ export default function PremiumNavbar() {
               <div className="absolute mt-2 w-84 bg-gray-800 border border-green-600/30 rounded-xl shadow-xl p-2 animate-fade-slide">
                 {[
                   { icon: GraduationCap, title:"Abacco Edu ERP", desc:"Education Management Software ", path: "/Services/EduERP" },
-                  { icon: Soup, title:"Abacco Restaurant POS", desc:"Restaurant Management Software ", path: "/Services/RestaurantPOS" },
+                  // { icon: Soup, title:"Abacco Restaurant POS", desc:"Restaurant Management Software ", path: "/Services/RestaurantPOS" },
                   { icon: Car, title:"Abacco Garage CRM", desc:"Garage Management Software ", path: "/Services/AbaccoGarage" },
-                  { icon: Stethoscope, title:"Hospital ERP", desc:"Hospital ERP Website", path: "/Services/HospitalERP" },
+                  // { icon: Stethoscope, title:"Hospital ERP", desc:"Hospital ERP Website", path: "/Services/HospitalERP" },
                   // { icon: Monitor, title:"Website Designing", desc:"Modern & Responsive", path: "/services/website-designing" },
                   // { icon: Workflow, title:"CRM Development", desc:"Industry Standard Solutions", path: "/services/crm-development" },
                   // { icon: Smartphone, title:"Application Development", desc:"Android & iOS", path: "/services/Application-Development" },

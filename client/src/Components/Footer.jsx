@@ -51,25 +51,20 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://www.linkedin.com/company/abacco-technology/"
+                href="https://www.linkedin.com/company/abaccotechnology"
                 className="w-10 h-10 rounded-lg bg-[#0A66C2] hover:bg-[#084f96] flex items-center justify-center transition-all duration-300 hover:scale-110"
               >
                 <Linkedin size={18} className="text-white" />
               </a>
 
               <a
-                href="#"
+                href="https://www.instagram.com/abaccotechnology/"
                 className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#405DE6] via-[#E1306C] to-[#FCAF45] flex items-center justify-center transition-all duration-300 hover:scale-110 hover:opacity-90"
               >
                 <Instagram size={18} className="text-white" />
               </a>
 
-              <a
-                href="#"
-                className="w-10 h-10 rounded-lg bg-[#FF0000] hover:bg-[#cc0000] flex items-center justify-center transition-all duration-300 hover:scale-110"
-              >
-                <Youtube size={18} className="text-white" />
-              </a>
+             
             </div>
           </div>
 

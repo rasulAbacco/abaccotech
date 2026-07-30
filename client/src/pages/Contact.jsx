@@ -110,8 +110,8 @@ const handleSubmit = async (e) => {
   const socialLinks = [
     { icon: <FaFacebookF />, url: "#", label: "Facebook" },
     { icon: <FaTwitter />, url: "#", label: "Twitter" },
-    { icon: <FaLinkedinIn />, url: "#", label: "LinkedIn" },
-    { icon: <FaInstagram />, url: "#", label: "Instagram" }
+    { icon: <FaLinkedinIn />, url: "https://www.linkedin.com/company/abaccotechnology", label: "LinkedIn" },
+    { icon: <FaInstagram />, url: "https://www.instagram.com/abaccotechnology/", label: "Instagram" }
   ];
 
   return (

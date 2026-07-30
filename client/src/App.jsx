@@ -39,7 +39,7 @@ import EduERP from "./pages/products/EduERP";
 import RestaurantPOS from "./pages/products/RestaurantPOS";
 import AbaccoGarage from "./pages/products/AbaccoGarage";
 import HospitalERP from "./pages/products/HospitalERP";
-
+import TermsAndConditions from "./pages/TermsAndConditions"
 
 function App() {
   return (
@@ -73,6 +73,7 @@ function App() {
        
         <Route path="/sign-in" element={<Login />} />
         <Route path="/sign-up" element={<Register />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
 
         {/* Dashbaord — open to any logged-in user */}
          <Route path="/dashboard" element={<Dashboard />} />
