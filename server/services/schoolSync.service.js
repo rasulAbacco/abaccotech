@@ -11,7 +11,19 @@
 // used a referral code, resolves the vendor from User.referralCode, and
 // upserts a Referral row per external record — deduped on
 // (website, externalId) so repeated syncs never create duplicates, and
-// existing rows just get their status/plan refreshed.
+// existing rows just get their status/plan/payment details refreshed.
+//
+// 🆕 UPDATE: School CRM's GET /api/payment/referrals now also sends
+// customerName, companyName, billingPeriod, amount, orderId, paymentId,
+// paidAt, and expiryDate (see payment.controller.js's getReferredUsers).
+// This service now stores all of that on the Referral row too, mirroring
+// what motorDeskSync.service.js already does — the dedup key
+// (website + externalId) and the create/update branching below are
+// UNCHANGED, this only adds more fields to the `data` object that was
+// already being written. originalAmount, discountAmount, discountPercent,
+// subscriptionId, nextBillingDate, trialEndDate, and isTrial have no
+// School CRM equivalent and are simply left untouched (null on create,
+// whatever they already were on update).
 
 import { PrismaClient } from "@prisma/client";
 import { findVendorByReferralCode } from "./referralService.js";
@@ -29,14 +41,22 @@ export class SchoolSyncError extends Error {
 }
 
 // School CRM's Payment.status is one of PENDING / SUCCESS / FAILED.
-// Abacco's Referral.status vocabulary is TRIAL / ACTIVE / PAID / (custom).
-// Map the former onto the latter so existing stats/dashboards keep working.
+// Abacco's Referral.status vocabulary is TRIAL / ACTIVE / PAID / PENDING /
+// CANCELLED / EXPIRED / PAYMENT_FAILED / (custom).
+//
+// 🆕 WIDENED: PENDING and FAILED now pass through as PENDING and
+// PAYMENT_FAILED respectively (previously both collapsed into "TRIAL"),
+// so School CRM referrals show up correctly in the Follow Ups and
+// Renewal Cancelled dashboards, the same way Motor Desk's mapper was
+// widened earlier. SUCCESS still maps to PAID, exactly as before.
 const mapPaymentStatusToReferralStatus = (schoolCrmStatus) => {
   switch (schoolCrmStatus) {
     case "SUCCESS":
       return "PAID";
     case "PENDING":
+      return "PENDING";
     case "FAILED":
+      return "PAYMENT_FAILED";
     default:
       return "TRIAL";
   }
@@ -102,11 +122,45 @@ const fetchReferredUsersFromSchoolCrm = async () => {
   return data;
 };
 
+// 🔧 Small helpers — same as motorDeskSync.service.js. Defensive: if
+// School CRM omits a field, or sends something that doesn't parse
+// cleanly, the result is null rather than a thrown error or bad data.
+const toNullableNumber = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const toNullableDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 // 🔁 Upsert a single referred-user record into the Referral table.
-// Dedup key: (website, externalId). Vendor is resolved from the referral
-// code on the incoming record.
+// Dedup key: (website, externalId) — UNCHANGED. Vendor is resolved from
+// the referral code on the incoming record — UNCHANGED.
 const upsertReferralRecord = async (entry) => {
-  const { externalId, referralCode, userName, email, phone, plan, status, createdAt } = entry;
+  const {
+    externalId,
+    referralCode,
+    userName,
+    // 🆕 richer fields — read defensively, each ends up null in `data`
+    // below if School CRM's payload doesn't include it.
+    customerName,
+    companyName,
+    email,
+    phone,
+    plan,
+    billingPeriod,
+    amount,
+    orderId,
+    paymentId,
+    status,
+    paidAt,
+    expiryDate,
+    createdAt,
+  } = entry;
 
   if (!externalId) {
     return { outcome: "skipped", reason: "Missing externalId" };
@@ -127,18 +181,30 @@ const upsertReferralRecord = async (entry) => {
     referralCode,
     website: WEBSITE_NAME,
     externalId: externalIdStr,
-    userName: userName || "",
+    userName: userName || customerName || companyName || "",
     email: email || null,
     phone: phone || null,
     plan: plan || null,
     status: mapPaymentStatusToReferralStatus(status),
+
+    // 🆕 Payment/subscription details — stored as-is when School CRM
+    // sends them, left null otherwise. None of this changes the dedup
+    // key or the create/update branching below.
+    customerName: customerName || null,
+    companyName: companyName || null,
+    billingPeriod: billingPeriod || null,
+    amount: toNullableNumber(amount),
+    orderId: orderId || null,
+    paymentId: paymentId || null,
+    paidAt: toNullableDate(paidAt),
+    expiryDate: toNullableDate(expiryDate),
   };
 
-  // Look up any existing row for this (website, externalId) pair first.
-  // If your Prisma schema has @@unique([website, externalId]) on Referral,
-  // this could instead be a single prisma.referral.upsert({ where: { website_externalId: {...} }, ... }).
-  // findFirst + create/update is used here so this works even before that
-  // unique constraint migration has been applied.
+  // Look up any existing row for this (website, externalId) pair first —
+  // UNCHANGED. The Referral model already has @@unique([website,
+  // externalId]), so this could be a single prisma.referral.upsert(...) —
+  // findFirst + create/update is used here instead to stay consistent with
+  // this file's existing pattern.
   const existing = await prisma.referral.findFirst({
     where: { website: WEBSITE_NAME, externalId: externalIdStr },
   });
@@ -157,7 +223,7 @@ const upsertReferralRecord = async (entry) => {
   return { outcome: "created" };
 };
 
-// 🟢 Main entry point — run a full sync pass against School CRM.
+// 🟢 Main entry point — run a full sync pass against School CRM. UNCHANGED.
 export const syncSchoolCrmReferrals = async () => {
   const referredUsers = await fetchReferredUsersFromSchoolCrm();
 

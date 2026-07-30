@@ -1,43 +1,54 @@
 // src/pages/dashboard/Renewals.jsx
-import React from "react";
-import { RefreshCw, IndianRupee, CalendarClock } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { RefreshCw, IndianRupee, CalendarClock, Loader2, AlertCircle } from "lucide-react";
 import DashboardLayout from "../../Components/DashboardLayout";
 
-// TODO: replace with real data from your API
-const renewals = [
-  {
-    siNo: 1,
-    clientName: "ABC School",
-    softwareName: "Abacco Edu ERP",
-    lastRenewalDate: "28-Jul-2025",
-    renewalDate: "28-Jul-2026",
-    renewalAmount: "₹50,000",
-    renewalCommission: "₹5,000",
-    daysLeft: 12,
-  },
-  {
-    siNo: 2,
-    clientName: "XYZ Hospital",
-    softwareName: "Abacco Hospital ERP",
-    lastRenewalDate: "29-Jul-2025",
-    renewalDate: "29-Jul-2026",
-    renewalAmount: "₹1,20,000",
-    renewalCommission: "₹12,000",
-    daysLeft: 13,
-  },
-  {
-    siNo: 3,
-    clientName: "Sunrise College",
-    softwareName: "Abacco Edu ERP",
-    lastRenewalDate: "05-Aug-2025",
-    renewalDate: "05-Aug-2026",
-    renewalAmount: "₹75,000",
-    renewalCommission: "₹7,500",
-    daysLeft: 20,
-  },
-];
+const API_URL = import.meta.env.VITE_API_URL;
+
+const formatDate = (iso) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "—";
+
+const formatAmount = (amount) =>
+  amount === null || amount === undefined ? "—" : `₹${Number(amount).toLocaleString("en-IN")}`;
 
 export default function Renewals() {
+  const [renewals, setRenewals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchRenewals = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_URL}/api/referral-dashboard/renewals`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "Failed to load renewals.");
+        }
+
+        setRenewals(data.data || []);
+      } catch (err) {
+        setError(err.message || "Something went wrong while loading renewals.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRenewals();
+  }, []);
+
+  const expectedRevenue = renewals.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const nearestDaysLeft = renewals.length
+    ? Math.min(...renewals.map((r) => (r.daysLeft ?? Infinity)))
+    : null;
+
   return (
     <DashboardLayout>
       {/* Header */}
@@ -45,7 +56,7 @@ export default function Renewals() {
         <div>
           <h1 className="text-2xl font-bold text-white">Renewals</h1>
           <p className="text-gray-400 text-sm mt-1">
-            Upcoming subscription renewals across all clients.
+            Referrals expiring or billing again within the next 30 days.
           </p>
         </div>
       </div>
@@ -56,26 +67,43 @@ export default function Renewals() {
           <div className="w-11 h-11 flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600 rounded-xl mb-4">
             <RefreshCw className="w-5 h-5 text-white" />
           </div>
-          <div className="text-2xl font-bold text-white mb-1">{renewals.length}</div>
+          <div className="text-2xl font-bold text-white mb-1">
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : renewals.length}
+          </div>
           <div className="text-gray-400 text-sm">Upcoming Renewals</div>
         </div>
         <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
           <div className="w-11 h-11 flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600 rounded-xl mb-4">
             <IndianRupee className="w-5 h-5 text-white" />
           </div>
-          <div className="text-2xl font-bold text-white mb-1">₹24,500</div>
-          <div className="text-gray-400 text-sm">Expected Commission</div>
+          <div className="text-2xl font-bold text-white mb-1">
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : formatAmount(expectedRevenue)}
+          </div>
+          <div className="text-gray-400 text-sm">Expected Revenue</div>
         </div>
         <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
           <div className="w-11 h-11 flex items-center justify-center bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl mb-4">
             <CalendarClock className="w-5 h-5 text-white" />
           </div>
           <div className="text-2xl font-bold text-white mb-1">
-            {Math.min(...renewals.map((r) => r.daysLeft))} days
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : nearestDaysLeft === null || nearestDaysLeft === Infinity ? (
+              "—"
+            ) : (
+              `${nearestDaysLeft} days`
+            )}
           </div>
           <div className="text-gray-400 text-sm">Nearest Renewal</div>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm mb-6">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          {error}
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 sm:p-8">
@@ -85,46 +113,61 @@ export default function Renewals() {
           <table className="w-full text-sm text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="border-b border-gray-800">
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">SI No</th>
                 <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Client Name</th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Software Name</th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Last Renewal</th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Renewal Date</th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Renewal Amount</th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Commission</th>
+                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Plan</th>
+                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Expiry Date</th>
+                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Next Billing</th>
+                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Amount</th>
                 <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Days Left</th>
+                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Referred By</th>
               </tr>
             </thead>
             <tbody>
-              {renewals.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-6 text-center text-gray-500 text-sm">
+                  <td colSpan={7} className="py-8 text-center text-gray-500 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin inline-block mr-2" />
+                    Loading renewals...
+                  </td>
+                </tr>
+              ) : renewals.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-gray-500 text-sm">
                     No renewals coming up.
                   </td>
                 </tr>
               ) : (
                 renewals.map((r) => (
                   <tr
-                    key={r.siNo}
+                    key={r.id}
                     className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors"
                   >
-                    <td className="py-3 pr-4 text-gray-300">{r.siNo}</td>
-                    <td className="py-3 pr-4 text-white font-medium whitespace-nowrap">{r.clientName}</td>
-                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{r.softwareName}</td>
-                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{r.lastRenewalDate}</td>
-                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{r.renewalDate}</td>
-                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{r.renewalAmount}</td>
-                    <td className="py-3 pr-4 text-green-400 font-medium whitespace-nowrap">{r.renewalCommission}</td>
+                    <td className="py-3 pr-4 text-white font-medium whitespace-nowrap">
+                      {r.customerName || r.userName}
+                    </td>
+                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{r.plan || "—"}</td>
+                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                      {formatDate(r.expiryDate)}
+                    </td>
+                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                      {formatDate(r.nextBillingDate)}
+                    </td>
+                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                      {formatAmount(r.amount)}
+                    </td>
                     <td className="py-3 pr-4 whitespace-nowrap">
                       <span
                         className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                          r.daysLeft <= 15
+                          r.daysLeft !== null && r.daysLeft <= 15
                             ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                             : "bg-green-500/10 text-green-400 border border-green-500/20"
                         }`}
                       >
-                        {r.daysLeft} days
+                        {r.daysLeft !== null ? `${r.daysLeft} days` : "—"}
                       </span>
+                    </td>
+                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                      {r.vendor?.user?.username || r.vendor?.fullName || "—"}
                     </td>
                   </tr>
                 ))

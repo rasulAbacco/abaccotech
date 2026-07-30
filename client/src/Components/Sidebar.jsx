@@ -11,18 +11,30 @@ import {
   Settings,
   LogOut,
   User,
+  Briefcase
 } from "lucide-react";
 
 const allMenuItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard", adminOnly: false },
   { label: "Vendors", icon: Handshake, path: "/vendors-list", adminOnly: false },
-  { label: "Deals", icon: Handshake, path: "/deals", adminOnly: false },
-  { label: "Follow Ups", icon: PhoneCall, path: "/follow-ups", adminOnly: false },
-  { label: "Renewals", icon: RefreshCw, path: "/renewals", adminOnly: false },
-  { label: "Renewal Cancelled", icon: XCircle, path: "/renewals-cancelled", adminOnly: false },
-  { label: "Reports", icon: BarChart3, path: "/reports", adminOnly: false },
+
+  // 🆕 FIXED: these five were all hard-coded to adminOnly: false, so the
+  // filter below (`!item.adminOnly || isAdmin`) never actually restricted
+  // anything — every regular user could see and open all of them. They
+  // show full referral/payment details across deals, follow-ups,
+  // renewals, cancellations, and reports, so they're admin-only now.
+  { label: "Deals", icon: Briefcase, path: "/deals", adminOnly: true },
+  { label: "Follow Ups", icon: PhoneCall, path: "/follow-ups", adminOnly: true },
+  { label: "Renewals", icon: RefreshCw, path: "/renewals", adminOnly: true },
+  { label: "Renewal Cancelled", icon: XCircle, path: "/renewals-cancelled", adminOnly: true },
+  { label: "Reports", icon: BarChart3, path: "/reports", adminOnly: true },
+
   { label: "Settings", icon: Settings, path: "/settings", adminOnly: false },
-  { label: "Admin", icon: User, path: "/admin", adminOnly: false },
+
+  // 🆕 FIXED: same issue — this is the admin user-management page
+  // (Admin.jsx / UserDetails.jsx), so it should never have been visible
+  // to non-admin users either.
+  { label: "Admin", icon: User, path: "/admin", adminOnly: true },
 ];
 
 export default function Sidebar() {

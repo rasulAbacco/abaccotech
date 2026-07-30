@@ -14,7 +14,7 @@ import {
 import DashboardLayout from "../../Components/DashboardLayout";
 import ReferralCodeBadge from "../../Components/ReferralCodeBadge";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
 
 const STATUS_STYLES = {
   PAID: "text-green-400 bg-green-500/10 border-green-500/20",

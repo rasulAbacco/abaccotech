@@ -6,74 +6,105 @@ import ReferralCodeBadge from "../../Components/ReferralCodeBadge";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// 🆕 Static placeholders for the admin view — no deals/follow-up tracking
-// exists yet, so these stay fixed until that's built out.
-const STATIC_TOTAL_DEALS = 128;
-const STATIC_FOLLOW_UPS = 12;
+const STATUS_STYLES = {
+  PAID: "text-green-400 bg-green-500/10 border-green-500/20",
+  ACTIVE: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  TRIAL: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
+  PENDING: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+  CANCELLED: "text-gray-400 bg-gray-500/10 border-gray-500/20",
+  EXPIRED: "text-red-400 bg-red-500/10 border-red-500/20",
+  PAYMENT_FAILED: "text-red-400 bg-red-500/10 border-red-500/20",
+};
 
-// TODO: replace with real data from your API
-const recentDeals = [
-  {
-    siNo: 1,
-    date: "28-Jul-2026",
-    clientName: "ABC School",
-    softwareName: "Abacco Edu ERP",
-    totalAmount: "₹50,000",
-    commissionAmount: "₹5,000",
-    renewalDate: "28-Jul-2027",
-    renewalCommission: "₹5,000",
-  },
-  {
-    siNo: 2,
-    date: "29-Jul-2026",
-    clientName: "XYZ Hospital",
-    softwareName: "Abacco Hospital ERP",
-    totalAmount: "₹1,20,000",
-    commissionAmount: "₹12,000",
-    renewalDate: "29-Jul-2027",
-    renewalCommission: "₹12,000",
-  },
-];
+const StatusBadge = ({ status }) => (
+  <span
+    className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap border ${
+      STATUS_STYLES[status] || "text-gray-400 bg-gray-500/10 border-gray-500/20"
+    }`}
+  >
+    {status || "—"}
+  </span>
+);
+
+const formatDate = (iso) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "—";
+
+const formatAmount = (amount) =>
+  amount === null || amount === undefined ? "—" : `₹${Number(amount).toLocaleString("en-IN")}`;
 
 export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isAdmin = user?.role === "admin";
 
   const [stats, setStats] = useState(null); // shape differs by role — see below
+  const [recentDeals, setRecentDeals] = useState([]); // admin only
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const authHeader = { Authorization: `Bearer ${token}` };
 
+    // 🆕 Admin view: platform-wide vendor/referral totals, PLUS real Total
+    // Deals / Follow-ups counts and a Recent Deals list — all sourced from
+    // the same admin-only Referral Dashboard endpoints that power the
+    // dedicated Deals/Follow Ups pages, instead of the old static
+    // placeholders (128 / 12) and hard-coded sample rows.
     const fetchAdminOverview = async () => {
-      const res = await fetch(`${API_URL}/referral/admin/overview`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to load the dashboard.");
+      const [overviewRes, dealsRes, followUpsRes] = await Promise.all([
+        fetch(`${API_URL}/referral/admin/overview`, { headers: authHeader }),
+        fetch(`${API_URL}/api/referral-dashboard/deals`, { headers: authHeader }),
+        fetch(`${API_URL}/api/referral-dashboard/follow-ups`, { headers: authHeader }),
+      ]);
+
+      const overviewData = await overviewRes.json();
+      if (!overviewRes.ok) {
+        throw new Error(overviewData.message || "Failed to load the dashboard.");
+      }
+
+      const dealsData = await dealsRes.json();
+      if (!dealsRes.ok || !dealsData.success) {
+        throw new Error(dealsData.message || "Failed to load deals.");
+      }
+
+      const followUpsData = await followUpsRes.json();
+      if (!followUpsRes.ok || !followUpsData.success) {
+        throw new Error(followUpsData.message || "Failed to load follow-ups.");
+      }
+
+      const deals = dealsData.data || [];
 
       return {
-        totalVendors: data.data?.totalVendors ?? 0,
-        totalReferralUsers: data.data?.totalReferralUsers ?? 0,
+        stats: {
+          totalVendors: overviewData.data?.totalVendors ?? 0,
+          totalDeals: deals.length,
+          totalFollowUps: (followUpsData.data || []).length,
+          totalReferralUsers: overviewData.data?.totalReferralUsers ?? 0,
+        },
+        // deals are already newest-first from the backend — just take the top 6.
+        recent: deals.slice(0, 6),
       };
     };
 
+    // Vendor view: their own referral overview from GET /referral/me.
+    // Unchanged — vendors don't have access to the admin-only
+    // /api/referral-dashboard/* endpoints, so no Recent Deals table here.
     const fetchVendorOverview = async () => {
-      const res = await fetch(`${API_URL}/referral/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${API_URL}/referral/me`, { headers: authHeader });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to load your referral stats.");
 
       const referrals = data.data?.referrals || [];
-      // "Total Referral Websites" = number of distinct source sites
-      // (School CRM, Bounce Cure, etc.) this vendor has referrals from.
       const distinctWebsites = new Set(referrals.map((r) => r.website)).size;
 
       return {
-        totalReferralWebsites: distinctWebsites,
-        totalReferralUsers: data.data?.stats?.totalReferrals ?? referrals.length,
+        stats: {
+          totalReferralWebsites: distinctWebsites,
+          totalReferralUsers: data.data?.stats?.totalReferrals ?? referrals.length,
+        },
+        recent: [],
       };
     };
 
@@ -81,11 +112,9 @@ export default function Dashboard() {
       setLoadingStats(true);
       setStatsError("");
       try {
-        // 🆕 Same page, two different data sources depending on who's
-        // logged in — admins see the platform-wide overview, everyone
-        // else sees their own vendor/referral stats.
         const result = isAdmin ? await fetchAdminOverview() : await fetchVendorOverview();
-        setStats(result);
+        setStats(result.stats);
+        setRecentDeals(result.recent);
       } catch (err) {
         setStatsError(err.message || "Something went wrong while loading the dashboard.");
       } finally {
@@ -100,8 +129,8 @@ export default function Dashboard() {
   const statCards = isAdmin
     ? [
         { icon: Building2, label: "Total Vendors", value: stats?.totalVendors ?? 0 },
-        { icon: Briefcase, label: "Total Deals", value: STATIC_TOTAL_DEALS },
-        { icon: PhoneCall, label: "Follow-ups", value: STATIC_FOLLOW_UPS },
+        { icon: Briefcase, label: "Total Deals", value: stats?.totalDeals ?? 0 },
+        { icon: PhoneCall, label: "Follow-ups", value: stats?.totalFollowUps ?? 0 },
         { icon: Gift, label: "Total Referral Users", value: stats?.totalReferralUsers ?? 0 },
       ]
     : [
@@ -123,7 +152,7 @@ export default function Dashboard() {
               : "Here's what's happening with your platform today."}
           </p>
         </div>
-        {/* 🆕 Referral code only makes sense for a vendor's own dashboard */}
+        {/* Referral code only makes sense for a vendor's own dashboard */}
         {!isAdmin && <ReferralCodeBadge />}
       </div>
 
@@ -157,87 +186,78 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Recent Deals Table */}
-      <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 sm:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-white">Recent Deals</h2>
-        </div>
+      {/* 🆕 Recent Deals — admin only, since the underlying endpoint
+          (/api/referral-dashboard/deals) is admin-only. Shows the 6 most
+          recently referred users with real synced payment details, in
+          place of the old hard-coded 2-row sample table. */}
+      {isAdmin && (
+        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-white">Recent Deals</h2>
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse min-w-[900px]">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">
-                  SI No
-                </th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">
-                  Date
-                </th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">
-                  Company / Client Name
-                </th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">
-                  Software Name
-                </th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">
-                  Total Amount
-                </th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">
-                  Commission Amount
-                </th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">
-                  Renewal Date
-                </th>
-                <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">
-                  Renewal Commission Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentDeals.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="py-6 text-center text-gray-500 text-sm"
-                  >
-                    No deals to show yet.
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">SI No</th>
+                  <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Date</th>
+                  <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Client</th>
+                  <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Company</th>
+                  <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Plan</th>
+                  <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Amount</th>
+                  <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Status</th>
+                  <th className="py-3 pr-4 font-medium text-gray-400 whitespace-nowrap">Website</th>
                 </tr>
-              ) : (
-                recentDeals.map((deal) => (
-                  <tr
-                    key={deal.siNo}
-                    className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors"
-                  >
-                    <td className="py-3 pr-4 text-gray-300">{deal.siNo}</td>
-                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
-                      {deal.date}
-                    </td>
-                    <td className="py-3 pr-4 text-white font-medium whitespace-nowrap">
-                      {deal.clientName}
-                    </td>
-                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
-                      {deal.softwareName}
-                    </td>
-                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
-                      {deal.totalAmount}
-                    </td>
-                    <td className="py-3 pr-4 text-green-400 font-medium whitespace-nowrap">
-                      {deal.commissionAmount}
-                    </td>
-                    <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
-                      {deal.renewalDate}
-                    </td>
-                    <td className="py-3 pr-4 text-green-400 font-medium whitespace-nowrap">
-                      {deal.renewalCommission}
+              </thead>
+              <tbody>
+                {loadingStats ? (
+                  <tr>
+                    <td colSpan={8} className="py-6 text-center text-gray-500 text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin inline-block mr-2" />
+                      Loading recent deals...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : recentDeals.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-6 text-center text-gray-500 text-sm">
+                      No deals to show yet.
+                    </td>
+                  </tr>
+                ) : (
+                  recentDeals.map((deal, index) => (
+                    <tr
+                      key={deal.id ?? index}
+                      className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors"
+                    >
+                      <td className="py-3 pr-4 text-gray-300">{index + 1}</td>
+                      <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                        {formatDate(deal.createdAt)}
+                      </td>
+                      <td className="py-3 pr-4 text-white font-medium whitespace-nowrap">
+                        {deal.customerName || deal.userName}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                        {deal.companyName || "—"}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                        {deal.plan || "—"}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">
+                        {formatAmount(deal.amount)}
+                      </td>
+                      <td className="py-3 pr-4 whitespace-nowrap">
+                        <StatusBadge status={deal.status} />
+                      </td>
+                      <td className="py-3 pr-4 text-gray-300 whitespace-nowrap">{deal.website}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </DashboardLayout>
   );
 }

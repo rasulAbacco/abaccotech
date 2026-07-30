@@ -83,8 +83,8 @@ model VendorFile {
 // using a vendor's referral code. Abacco Tech is the system of record for these leads.
 
 model Referral {
-  id           Int      @id @default(autoincrement())
-  vendor       Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id           Int     @id @default(autoincrement())
+  vendor       Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   vendorId     Int
   referralCode String
   website      String
@@ -92,10 +92,33 @@ model Referral {
   email        String?
   phone        String? // 🔄 was required — now optional (see note above)
   plan         String?
-  status       String   @default("TRIAL")
+  status       String  @default("TRIAL")
   externalId   String? // 🆕 the referred user's id on the source site — reliable dedup key for synced rows
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  // 🆕 Payment/subscription detail fields — approved for the Referral
+  // Dashboard feature. Populated by services/motorDeskSync.service.js from
+  // Motor Desk's GET /api/abacco/referrals payload. Every field here is
+  // optional/nullable on purpose: sources that don't provide this data
+  // (e.g. School CRM, via services/schoolSync.service.js, which was NOT
+  // modified) simply leave these null, and nothing else breaks.
+  customerName    String?
+  companyName     String?
+  billingPeriod   String?
+  amount          Float?
+  originalAmount  Float?
+  discountAmount  Float?
+  discountPercent Float?
+  paymentId       String?
+  orderId         String?
+  subscriptionId  String?
+  paidAt          DateTime?
+  expiryDate      DateTime?
+  nextBillingDate DateTime?
+  trialEndDate    DateTime?
+  isTrial         Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // 🔄 (website, phone) is no longer a safe uniqueness guarantee on its own
   // since phone can now be null for many rows — Postgres allows multiple

@@ -26,6 +26,7 @@ import Register from "./pages/auth/Register";
 
 import Dashboard from "./pages/dashboard/Dashboard";
 import VendorsList from "./pages/dashboard/VendorsList";
+import Deals from "./pages/dashboard/Deals"; // 🆕 was missing a route entirely before
 import FollowUps from "./pages/dashboard/FollowUps";
 import Renewals from "./pages/dashboard/Renewals";
 import RenewalsCancelled from "./pages/dashboard/RenewalsCancelled";
@@ -33,8 +34,7 @@ import Reports from "./pages/dashboard/Reports";
 import Settings from "./pages/dashboard/Settings";
 import Admin from "./pages/dashboard/admin/Admin"
 import UserDetails from "./pages/dashboard/admin/UserDetails"
-import Deals from "./pages/dashboard/Deals";
-import TermsAndConditions from "./pages/TermsAndConditions";
+import AdminRoute from "./Components/AdminRoute"; // 🆕 route-level guard for admin-only pages
 
 
 function App() {
@@ -60,22 +60,26 @@ function App() {
         <Route path="/terms" element={<TermsService />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/success" element={<Success />} />
-       <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+       
         <Route path="/sign-in" element={<Login />} />
         <Route path="/sign-up" element={<Register />} />
 
-        {/* Dashbaord */}
+        {/* Dashbaord — open to any logged-in user */}
          <Route path="/dashboard" element={<Dashboard />} />
          <Route path="/vendors" element={<Vendors />} />
          <Route path="/vendors-list" element={<VendorsList />} />
-         <Route path="/deals" element={<Deals />} />
-         <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/users/:id" element={<UserDetails />} />
-        <Route path="/follow-ups" element={<FollowUps />} />
-        <Route path="/renewals" element={<Renewals />} />
-        <Route path="/renewals-cancelled" element={<RenewalsCancelled />} />
-        <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
+
+        {/* 🆕 Admin-only — hidden from the sidebar for non-admins
+            (see Sidebar.jsx), and now guarded here too so a typed/pasted
+            URL can't bypass that. Non-admins get redirected to /dashboard. */}
+        <Route path="/deals" element={<AdminRoute><Deals /></AdminRoute>} />
+        <Route path="/follow-ups" element={<AdminRoute><FollowUps /></AdminRoute>} />
+        <Route path="/renewals" element={<AdminRoute><Renewals /></AdminRoute>} />
+        <Route path="/renewals-cancelled" element={<AdminRoute><RenewalsCancelled /></AdminRoute>} />
+        <Route path="/reports" element={<AdminRoute><Reports /></AdminRoute>} />
+        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+        <Route path="/admin/users/:id" element={<AdminRoute><UserDetails /></AdminRoute>} />
 
       </Routes>
     </BrowserRouter>

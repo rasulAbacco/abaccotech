@@ -11,7 +11,17 @@
 // used a referral code, resolves the vendor from User.referralCode, and
 // upserts a Referral row per external record — deduped on
 // (website, externalId) so repeated syncs never create duplicates, and
-// existing rows just get their status/plan refreshed.
+// existing rows just get their status/plan/payment details refreshed.
+//
+// 🆕 UPDATE: now also stores the full payment/subscription details Motor
+// Desk sends (customerName, companyName, billingPeriod, amount,
+// originalAmount, discountAmount, discountPercent, paymentId, orderId,
+// subscriptionId, paidAt, expiryDate, nextBillingDate, trialEndDate,
+// isTrial) — these power the Referral Dashboard (see
+// services/referralDashboard.service.js). The existing dedup key
+// (website + externalId) and create/update branching below are
+// UNCHANGED — this only adds more fields to the `data` object that was
+// already being written.
 
 import { PrismaClient } from "@prisma/client";
 import { findVendorByReferralCode } from "./referralService.js";
@@ -32,8 +42,15 @@ export class MotorDeskSyncError extends Error {
 // expected to already use values close to Abacco's own vocabulary
 // (e.g. "PAID"). Still mapped defensively rather than trusted verbatim —
 // same reasoning as schoolSync's mapper: if Motor Desk ever sends
-// something outside TRIAL/ACTIVE/PAID, fall back to TRIAL rather than
-// writing an unrecognized status into the Referral table.
+// something completely unrecognized, fall back to TRIAL rather than
+// writing an arbitrary string into the Referral table.
+//
+// 🆕 WIDENED: now also passes through PENDING / CANCELLED / EXPIRED /
+// PAYMENT_FAILED as-is (previously any of these would have silently
+// collapsed into "TRIAL", which made it impossible for the Referral
+// Dashboard's "Renewal Cancelled" endpoint to ever see a
+// cancelled/expired/failed row from Motor Desk). This is purely additive —
+// every previously-recognized value still maps exactly the same as before.
 const mapMotorDeskStatusToReferralStatus = (motorDeskStatus) => {
   switch (motorDeskStatus) {
     case "FIRST_PAYMENT_COMPLETED":
@@ -45,6 +62,14 @@ const mapMotorDeskStatusToReferralStatus = (motorDeskStatus) => {
 
     case "TRIAL":
       return "TRIAL";
+
+    case "PENDING":
+      return "PENDING";
+
+    case "CANCELLED":
+    case "EXPIRED":
+    case "PAYMENT_FAILED":
+      return motorDeskStatus;
 
     default:
       return "TRIAL";
@@ -111,11 +136,52 @@ const fetchReferredUsersFromMotorDesk = async () => {
   return data;
 };
 
+// 🔧 Small helpers — every one of these is defensive: if Motor Desk omits
+// a field, or sends something that doesn't parse cleanly, the result is
+// null rather than a thrown error or a garbage value written to the DB.
+const toNullableNumber = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const toNullableDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 // 🔁 Upsert a single referred-payment record into the Referral table.
-// Dedup key: (website, externalId). Vendor is resolved from the referral
-// code on the incoming record.
+// Dedup key: (website, externalId) — UNCHANGED. Vendor is resolved from
+// the referral code on the incoming record — UNCHANGED.
 const upsertReferralRecord = async (entry) => {
-  const { externalId, referralCode, customerName, companyName, email, phone, plan, status, createdAt } = entry;
+  const {
+    externalId,
+    referralCode,
+    customerName,
+    companyName,
+    email,
+    phone,
+    plan,
+    status,
+    createdAt,
+    // 🆕 Richer payment/subscription fields. Each is read defensively —
+    // if Motor Desk's payload doesn't include one, it's simply undefined
+    // here and ends up null in `data` below, same as School CRM rows.
+    billingPeriod,
+    amount,
+    originalAmount,
+    discountAmount,
+    discountPercent,
+    paymentId,
+    orderId,
+    subscriptionId,
+    paidAt,
+    expiryDate,
+    nextBillingDate,
+    trialEndDate,
+    isTrial,
+  } = entry;
 
   if (!externalId) {
     return { outcome: "skipped", reason: "Missing externalId" };
@@ -144,11 +210,30 @@ const upsertReferralRecord = async (entry) => {
     phone: phone || null,
     plan: plan || null,
     status: mapMotorDeskStatusToReferralStatus(status),
+
+    // 🆕 Payment/subscription details — stored as-is when Motor Desk sends
+    // them, left null otherwise. None of this changes the dedup key or
+    // the create/update branching below.
+    customerName: customerName || null,
+    companyName: companyName || null,
+    billingPeriod: billingPeriod || null,
+    amount: toNullableNumber(amount),
+    originalAmount: toNullableNumber(originalAmount),
+    discountAmount: toNullableNumber(discountAmount),
+    discountPercent: toNullableNumber(discountPercent),
+    paymentId: paymentId || null,
+    orderId: orderId || null,
+    subscriptionId: subscriptionId || null,
+    paidAt: toNullableDate(paidAt),
+    expiryDate: toNullableDate(expiryDate),
+    nextBillingDate: toNullableDate(nextBillingDate),
+    trialEndDate: toNullableDate(trialEndDate),
+    isTrial: Boolean(isTrial),
   };
 
-  // Look up any existing row for this (website, externalId) pair first.
-  // The Referral model already has @@unique([website, externalId]), so
-  // this could be a single prisma.referral.upsert({ where: { website_externalId: {...} }, ... }) —
+  // Look up any existing row for this (website, externalId) pair first —
+  // UNCHANGED. The Referral model already has @@unique([website,
+  // externalId]), so this could be a single prisma.referral.upsert(...) —
   // findFirst + create/update is used here instead to stay consistent with
   // schoolSync.service.js's existing pattern.
   const existing = await prisma.referral.findFirst({
@@ -169,7 +254,7 @@ const upsertReferralRecord = async (entry) => {
   return { outcome: "created" };
 };
 
-// 🟢 Main entry point — run a full sync pass against Motor Desk.
+// 🟢 Main entry point — run a full sync pass against Motor Desk. UNCHANGED.
 export const syncMotorDeskReferrals = async () => {
   const referredUsers = await fetchReferredUsersFromMotorDesk();
 
