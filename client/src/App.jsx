@@ -35,6 +35,10 @@ import Settings from "./pages/dashboard/Settings";
 import Admin from "./pages/dashboard/admin/Admin"
 import UserDetails from "./pages/dashboard/admin/UserDetails"
 import AdminRoute from "./Components/AdminRoute"; // 🆕 route-level guard for admin-only pages
+import EduERP from "./pages/products/EduERP";
+import RestaurantPOS from "./pages/products/RestaurantPOS";
+import AbaccoGarage from "./pages/products/AbaccoGarage";
+import HospitalERP from "./pages/products/HospitalERP";
 
 
 function App() {
@@ -51,6 +55,12 @@ function App() {
         <Route path="/Services/cloud-management" element={<CloudManagement />} />
         <Route path="/Services/database-management" element={<DatabaseManagement />} />
         <Route path="/Services/aws-services" element={<AWSServices />} />
+
+        {/* Products */}
+        <Route path="/Services/EduERP" element={<EduERP />} />
+        <Route path="/Services/RestaurantPOS" element={<RestaurantPOS />} />
+        <Route path="/Services/AbaccoGarage" element={<AbaccoGarage />} />
+        <Route path="/Services/HospitalERP" element={<HospitalERP />} />
 
         <Route path="/why-choose-us" element={<WhyChooseUs />} />
         <Route path="/pricing" element={<Pricing />} />

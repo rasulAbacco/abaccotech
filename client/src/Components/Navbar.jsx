@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mail, Phone, Menu, X, Home, Info, Briefcase, MessageSquare, ChevronDown, Send, Facebook, Twitter, Linkedin, Instagram, PhoneCall, Code } from "lucide-react";
+import { Mail, Phone, Menu, X, Home, Info, Briefcase, MessageSquare, ChevronDown, Send, Facebook, Twitter, Linkedin, Instagram, PhoneCall, Code, Car } from "lucide-react";
 import {
   Monitor,
   Workflow,
@@ -7,7 +7,10 @@ import {
   CloudCog,
   Database,
   Cloud,
-  User
+  User,
+  Soup,
+  GraduationCap,
+  Stethoscope
 } from "lucide-react";
 import { GiReceiveMoney } from "react-icons/gi";
 import { FaRegHandshake } from "react-icons/fa6";
@@ -85,11 +88,15 @@ export default function PremiumNavbar() {
             </button>
 
             {openDropdown && (
-              <div className="absolute mt-2 w-64 bg-gray-800 border border-green-600/30 rounded-xl shadow-xl p-2 animate-fade-slide">
+              <div className="absolute mt-2 w-84 bg-gray-800 border border-green-600/30 rounded-xl shadow-xl p-2 animate-fade-slide">
                 {[
-                  { icon: Monitor, title:"Website Designing", desc:"Modern & Responsive", path: "/services/website-designing" },
-                  { icon: Workflow, title:"CRM Development", desc:"Industry Standard Solutions", path: "/services/crm-development" },
-                  { icon: Smartphone, title:"Application Development", desc:"Android & iOS", path: "/services/Application-Development" },
+                  { icon: GraduationCap, title:"Abacco Edu ERP", desc:"Education Management Software ", path: "/Services/EduERP" },
+                  { icon: Soup, title:"Abacco Restaurant POS", desc:"Restaurant Management Software ", path: "/Services/RestaurantPOS" },
+                  { icon: Car, title:"Abacco Garage CRM", desc:"Garage Management Software ", path: "/Services/AbaccoGarage" },
+                  { icon: Stethoscope, title:"Hospital ERP", desc:"Hospital ERP Website", path: "/Services/HospitalERP" },
+                  // { icon: Monitor, title:"Website Designing", desc:"Modern & Responsive", path: "/services/website-designing" },
+                  // { icon: Workflow, title:"CRM Development", desc:"Industry Standard Solutions", path: "/services/crm-development" },
+                  // { icon: Smartphone, title:"Application Development", desc:"Android & iOS", path: "/services/Application-Development" },
                   { icon: CloudCog, title:"Cloud Management", desc:"Infrastructure Solutions", path: "/services/cloud-management" },
                   { icon: Database, title:"Database Management", desc:"Secure & Scalable DB Services", path: "/services/database-management" },
                   { icon: Cloud, title:"AWS Services", desc:"Cloud Hosting & DevOps", path: "/services/aws-services" },
