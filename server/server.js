@@ -12,10 +12,7 @@ import { startSchoolSyncCron } from "./cron/schoolSyncCron.js"; // 🆕 automati
 import motorDeskSyncRoutes from "./routes/motorDeskSync.routes.js"; // 🆕 Motor Desk pull-based referral sync (manual trigger)
 import { startMotorDeskSyncCron } from "./cron/motorDeskSyncCron.js"; // 🆕 automatic Motor Desk referral sync every 5 minutes
 import referralDashboardRoutes from "./routes/referralDashboard.routes.js"; // 🆕 Deals / Follow Ups / Renewals / Renewal Cancelled / Reports
-// 🗑️ REMOVED: import { startBounceCureSyncCron } from "./cron/bounceCureSyncCron.js";
-// Both Bounce Cure and School CRM push referrals directly now — this cron
-// job was pulling from an endpoint/env-var setup that's no longer part of
-// the design, and would silently fail every 15 minutes if left running.
+import vendorEarningsRoutes from "./routes/vendorEarnings.routes.js";
 
 dotenv.config();
 
@@ -81,7 +78,7 @@ app.use("/payment", paymentRoute);
 app.use("/vendor", vendorRoute);
 
 app.use("/referral", referralRoutes);
-
+app.use("/api/vendor-earnings", vendorEarningsRoutes);
 // 🆕 School CRM referral sync — pull-based replacement for the old
 // push-based /referral/register calls. POST /sync/school-crm/run
 // (admin-only) still works for an on-demand/manual trigger.

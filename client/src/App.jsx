@@ -40,6 +40,7 @@ import RestaurantPOS from "./pages/products/RestaurantPOS";
 import AbaccoGarage from "./pages/products/AbaccoGarage";
 import HospitalERP from "./pages/products/HospitalERP";
 import TermsAndConditions from "./pages/TermsAndConditions"
+import VendorEarnings from "./pages/dashboard/VendorEarnings";
 
 function App() {
   return (
@@ -79,6 +80,7 @@ function App() {
          <Route path="/dashboard" element={<Dashboard />} />
          <Route path="/vendors" element={<Vendors />} />
          <Route path="/vendors-list" element={<VendorsList />} />
+         <Route path="/earnings" element={<VendorEarnings />} />
         <Route path="/settings" element={<Settings />} />
 
         {/* 🆕 Admin-only — hidden from the sidebar for non-admins

@@ -7,6 +7,7 @@ import {
   listUsers,
   getUserById,
   deleteUser,
+  changePassword, 
 } from "../controllers/authController.js";
 import { protect, requireAdmin } from "../middleware/authMiddleware.js";
 
@@ -23,5 +24,5 @@ router.get("/me", protect, getMe);
 router.get("/users", protect, requireAdmin, listUsers);
 router.get("/users/:id", protect, requireAdmin, getUserById);
 router.delete("/users/:id", protect, requireAdmin, deleteUser);
-
+router.put("/change-password", protect, changePassword); // 🆕
 export default router;

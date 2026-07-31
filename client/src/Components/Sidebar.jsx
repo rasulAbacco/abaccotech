@@ -11,13 +11,14 @@ import {
   Settings,
   LogOut,
   User,
-  Briefcase
+  Briefcase,
+  Wallet 
 } from "lucide-react";
 
 const allMenuItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard", adminOnly: false },
   { label: "Vendors", icon: Handshake, path: "/vendors-list", adminOnly: false },
-
+  { label: "Earnings", icon: Wallet, path: "/earnings", adminOnly: false },
   // 🆕 FIXED: these five were all hard-coded to adminOnly: false, so the
   // filter below (`!item.adminOnly || isAdmin`) never actually restricted
   // anything — every regular user could see and open all of them. They

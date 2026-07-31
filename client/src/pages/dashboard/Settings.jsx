@@ -1,7 +1,9 @@
 // src/pages/dashboard/Settings.jsx
 import React, { useState } from "react";
-import { User, Lock, Bell, Save } from "lucide-react";
+import { User, Lock, Bell, Save, Eye, EyeOff } from "lucide-react";
 import DashboardLayout from "../../Components/DashboardLayout";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Settings() {
   const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -18,12 +20,80 @@ export default function Settings() {
     emailUpdates: false,
   });
 
+  const [passwords, setPasswords] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwMessage, setPwMessage] = useState(null); // { type: "success" | "error", text }
+
   const handleProfileChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
   const toggleNotification = (key) => {
     setNotifications({ ...notifications, [key]: !notifications[key] });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswords({ ...passwords, [e.target.name]: e.target.value });
+  };
+
+  const toggleShowPassword = (field) => {
+    setShowPassword({ ...showPassword, [field]: !showPassword[field] });
+  };
+
+  const handleUpdatePassword = async () => {
+    setPwMessage(null);
+
+    if (!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword) {
+      setPwMessage({ type: "error", text: "All password fields are required." });
+      return;
+    }
+    if (passwords.newPassword.length < 6) {
+      setPwMessage({ type: "error", text: "New password must be at least 6 characters." });
+      return;
+    }
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setPwMessage({ type: "error", text: "New password and confirm password don't match." });
+      return;
+    }
+
+    try {
+      setPwLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/auth/change-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword: passwords.currentPassword,
+          newPassword: passwords.newPassword,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPwMessage({ type: "error", text: data.message || "Failed to update password" });
+        return;
+      }
+
+      setPwMessage({ type: "success", text: "Password updated successfully." });
+      setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (err) {
+      console.error("❌ Update password error:", err);
+      setPwMessage({ type: "error", text: "Server error. Please try again." });
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   return (
@@ -97,32 +167,85 @@ export default function Settings() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1.5">Current Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/40"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword.current ? "text" : "password"}
+                  name="currentPassword"
+                  value={passwords.currentPassword}
+                  onChange={handlePasswordChange}
+                  placeholder="••••••••"
+                  className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-2.5 pr-11 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/40"
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleShowPassword("current")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  tabIndex={-1}
+                >
+                  {showPassword.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1.5">New Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/40"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword.new ? "text" : "password"}
+                  name="newPassword"
+                  value={passwords.newPassword}
+                  onChange={handlePasswordChange}
+                  placeholder="••••••••"
+                  className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-2.5 pr-11 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/40"
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleShowPassword("new")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  tabIndex={-1}
+                >
+                  {showPassword.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1.5">Confirm New Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/40"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword.confirm ? "text" : "password"}
+                  name="confirmPassword"
+                  value={passwords.confirmPassword}
+                  onChange={handlePasswordChange}
+                  placeholder="••••••••"
+                  className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-2.5 pr-11 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/40"
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleShowPassword("confirm")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  tabIndex={-1}
+                >
+                  {showPassword.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
-            <button className="w-full flex items-center justify-center gap-2 bg-gray-800 text-white text-sm font-medium py-2.5 rounded-xl hover:bg-gray-700 transition-colors">
+            {pwMessage && (
+              <p
+                className={`text-xs ${
+                  pwMessage.type === "success" ? "text-green-400" : "text-red-400"
+                }`}
+              >
+                {pwMessage.text}
+              </p>
+            )}
+
+            <button
+              onClick={handleUpdatePassword}
+              disabled={pwLoading}
+              className="w-full flex items-center justify-center gap-2 bg-gray-800 text-white text-sm font-medium py-2.5 rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
               <Lock className="w-4 h-4" />
-              Update Password
+              {pwLoading ? "Updating..." : "Update Password"}
             </button>
           </div>
         </div>
