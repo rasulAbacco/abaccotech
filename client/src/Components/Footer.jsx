@@ -1,271 +1,146 @@
+//  src/Components/Footer.jsx
 import React from "react";
-import {
-  Mail,
-  Phone,
-  MapPin,
-  Facebook,
-  Twitter,
-  Linkedin,
-  Instagram,
-  Youtube,
-  Send,
-  ArrowRight,
-} from "lucide-react";
+import { Mail, Phone, MapPin, ArrowUp } from "lucide-react";
+
+// ---------- Footer data ----------
+const QUICK_LINKS = [
+  { title: "Home", path: "/" },
+  { title: "About Us", path: "/about" },
+  { title: "Why Choose Us", path: "/why-choose-us" },
+  { title: "Pricing", path: "/pricing" },
+  { title: "Contact Us", path: "/contact" },
+];
+
+const SERVICES = [
+  { title: "Website Designing", path: "/services/website-designing" },
+  { title: "CRM Development", path: "/services/crm-development" },
+  { title: "Application Development", path: "/services/Application-Development" },
+  { title: "Cloud Management", path: "/services/cloud-management" },
+  { title: "Database Management", path: "/services/database-management" },
+  { title: "AWS Services", path: "/services/aws-services" },
+];
+
+const LEGAL_LINKS = [
+  { title: "Privacy Policy", path: "/privacy" },
+  { title: "Terms of Service", path: "/terms" },
+  { title: "Refund Policy", path: "/refund-policy" },
+];
+
+const EMAIL = "info@abaccotech.com";
+const PHONE_DISPLAY = "+91 99724 52044";
+const PHONE_LINK = "+919972452044";
+const ADDRESS =
+  "No 12, 13 & 12/A, Kirthan Arcade, 3rd Floor, Aditya Nagar, Sandeep Unnikrishnan Road, Bangalore - 560097";
+const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`;
+
+// ---------- Shared styles (same sizes & hover colour as the Navbar) ----------
+const focusRing =
+  "rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0f19]";
+
+const headingClass =
+  "text-xs font-semibold uppercase tracking-wide text-green-400/90 mb-3 pb-1.5 border-b border-white/10";
+
+const linkClass = `inline-block py-1 text-sm text-gray-300 hover:text-green-400 transition ${focusRing}`;
+
+const contactRowClass = `flex items-start gap-3 text-sm text-gray-300 hover:text-green-400 transition ${focusRing}`;
 
 export default function Footer() {
+  const scrollToTop = () => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
+
   return (
-    <footer className="bg-gradient-to-b from-gray-900 to-black text-white">
-      {/* Main Footer Content */}
-      <div className="max-w-7x2 mx-auto px-4 py-12 ml-3 mr-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer className="bg-[#0b0f19] text-white border-t border-white/10">
+      {/* Main Footer Content — same side padding as the Navbar so edges line up */}
+      <div className="px-6 md:px-10 py-7">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
           {/* Company Info */}
-          <div className="space-y-4">
-            <a href="/" className="flex items-center gap-3 cursor-pointer">
-              <img src="/Logo/icon.png" className="h-12 w-12 object-contain" />
+          <div className="col-span-2 lg:col-span-1 space-y-4">
+            <a href="/" className={`flex items-center gap-3 w-fit ${focusRing}`}>
+              <img
+                src="/Logo/icon.png"
+                alt="Abacco Technology logo"
+                className="h-10 w-10 object-contain"
+              />
               <div className="leading-tight text-white">
-                <p className="font-bold text-[25px] tracking-wide">
-                  Abacco Technology
-                </p>
-                <p className="text-xs text-gray-300">
-                  Smart Solutions for a Digital World
-                </p>
+                <p className="font-bold text-[19px] tracking-wide">Abacco Technology</p>
+                <p className="text-[11px] text-gray-300">Smart Solutions for a Digital World</p>
               </div>
             </a>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Your trusted partner in digital marketing solutions. We help
-              businesses grow through innovative marketing strategies.
+            <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
+              Your trusted partner in digital marketing solutions. We help businesses grow
+              through innovative marketing strategies.
             </p>
-            <div className="flex gap-3 pt-2">
-              <a
-                href="#"
-                className="w-10 h-10 rounded-lg bg-[#1877F2] hover:bg-[#0e5dc1] flex items-center justify-center transition-all duration-300 hover:scale-110"
-              >
-                <Facebook size={18} className="text-white" />
-              </a>
-
-              <a
-                href="#"
-                className="w-10 h-10 rounded-lg bg-[#1DA1F2] hover:bg-[#0c8bd6] flex items-center justify-center transition-all duration-300 hover:scale-110"
-              >
-                <Twitter size={18} className="text-white" />
-              </a>
-
-              <a
-                href="https://www.linkedin.com/company/abaccotechnology"
-                className="w-10 h-10 rounded-lg bg-[#0A66C2] hover:bg-[#084f96] flex items-center justify-center transition-all duration-300 hover:scale-110"
-              >
-                <Linkedin size={18} className="text-white" />
-              </a>
-
-              <a
-                href="https://www.instagram.com/abaccotechnology/"
-                className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#405DE6] via-[#E1306C] to-[#FCAF45] flex items-center justify-center transition-all duration-300 hover:scale-110 hover:opacity-90"
-              >
-                <Instagram size={18} className="text-white" />
-              </a>
-
-             
-            </div>
           </div>
 
           {/* Quick Links */}
-          <div className="space-y-4 ">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#017701] rounded"></div>
-              Quick Links
-            </h3>
-            <ul className="space-y-3">
-              <li>
-                <a
-                  href="/"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  Home
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/about"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  About Us
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/why-choose-us"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  Why Choose Us
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/pricing"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/contact"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  Contact
-                </a>
-              </li>
+          <nav aria-label="Quick links">
+            <h2 className={headingClass}>Quick Links</h2>
+            <ul className="space-y-1">
+              {QUICK_LINKS.map((link) => (
+                <li key={link.path}>
+                  <a href={link.path} className={linkClass}>
+                    {link.title}
+                  </a>
+                </li>
+              ))}
             </ul>
-          </div>
+          </nav>
 
           {/* Our Services */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#017701] rounded"></div>
-              Our Services
-            </h3>
-            <ul className="space-y-3">
-              <li>
-                <a
-                  href="/services/website-designing"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  Website Designing
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/services/crm-development"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  CRM Development
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/services/Application-Development"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  Application Development
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/services/cloud-management"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  Cloud Management
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/services/database-management"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  Database Management
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/services/aws-services"
-                  className="text-gray-400 hover:text-[#017701] transition-colors flex items-center gap-2 group"
-                >
-                  <ArrowRight
-                    size={16}
-                    className="group-hover:translate-x-1 transition-transform"
-                  />
-                  AWS Services
-                </a>
-              </li>
+          <nav aria-label="Our services">
+            <h2 className={headingClass}>Our Services</h2>
+            <ul className="space-y-1">
+              {SERVICES.map((service) => (
+                <li key={service.path}>
+                  <a href={service.path} className={linkClass}>
+                    {service.title}
+                  </a>
+                </li>
+              ))}
             </ul>
-          </div>
+          </nav>
 
-          {/* Contact Info */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#017701] rounded"></div>
-              Contact Us
-            </h3>
+          {/* Contact Us — each whole row is clickable for an easier tap target */}
+          <div className="col-span-2 lg:col-span-1">
+            <h2 className={headingClass}>Contact Us</h2>
             <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-gray-400">
-                <Mail size={20} className="text-[#017701] mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Email</p>
-                  <a
-                    href="mailto:info@abaccotech.com"
-                    className="hover:text-[#017701] transition-colors"
-                  >
-                    info@abaccotech.com
-                  </a>
-                </div>
+              <li>
+                <a href={`mailto:${EMAIL}`} className={contactRowClass}>
+                  <Mail size={16} className="mt-0.5 shrink-0 text-green-400" />
+                  <span>
+                    <span className="block text-[11px] text-gray-400">Email</span>
+                    {EMAIL}
+                  </span>
+                </a>
               </li>
-              <li className="flex items-start gap-3 text-gray-400">
-                <Phone
-                  size={20}
-                  className="text-[#017701] mt-1 flex-shrink-0"
-                />
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Phone</p>
-                  <a
-                    href="tel:+919972452044"
-                    className="hover:text-[#017701] transition-colors"
-                  >
-                    +91 9972452044
-                  </a>
-                </div>
+              <li>
+                <a href={`tel:${PHONE_LINK}`} className={contactRowClass}>
+                  <Phone size={16} className="mt-0.5 shrink-0 text-green-400" />
+                  <span>
+                    <span className="block text-[11px] text-gray-400">Phone</span>
+                    {PHONE_DISPLAY}
+                  </span>
+                </a>
               </li>
-              <li className="flex items-start gap-3 text-gray-400">
-                <MapPin
-                  size={20}
-                  className="text-[#017701] mt-1 flex-shrink-0"
-                />
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Address</p>
-                  <p className="text-sm">
-                    No 12,13 & 12/A, Kirthan Arcade, 3rd Floor, Aditya Nagar,
-                    Sandeep Unnikrishnan Road, Bangalore - 560097
-                  </p>
-                </div>
+              <li>
+                <a
+                  href={MAPS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={contactRowClass}
+                >
+                  <MapPin size={16} className="mt-0.5 shrink-0 text-green-400" />
+                  <span>
+                    <span className="block text-[11px] text-gray-400">Address</span>
+                    <span className="block leading-relaxed">{ADDRESS}</span>
+                    <span className="block mt-1 text-[11px] font-medium text-green-400">
+                      Get directions
+                      <span className="sr-only"> (opens Google Maps in a new tab)</span>
+                    </span>
+                  </span>
+                </a>
               </li>
             </ul>
           </div>
@@ -273,30 +148,36 @@ export default function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="bg-black border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-            <p>© {new Date().getFullYear()} Abacco Technology. All rights reserved.</p>
-            <div className="flex gap-6">
-              <a
-                href="/privacy"
-                className="hover:text-[#017701] transition-colors"
-              >
-                Privacy Policy
-              </a>
-              <a
-                href="/terms"
-                className="hover:text-[#017701] transition-colors"
-              >
-                Terms of Service
-              </a>
-              <a
-                href="/refund-policy"
-                className="hover:text-[#017701] transition-colors"
-              >
-                Refund Policy
-              </a>
-            </div>
+      <div className="border-t border-white/10">
+        <div className="px-6 md:px-10 py-5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-400">
+          <p className="text-center md:text-left">
+            © {new Date().getFullYear()} Abacco Technology. All rights reserved.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+            <nav aria-label="Legal">
+              <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                {LEGAL_LINKS.map((link) => (
+                  <li key={link.path}>
+                    <a
+                      href={link.path}
+                      className={`inline-block py-1 hover:text-green-400 transition ${focusRing}`}
+                    >
+                      {link.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <button
+              type="button"
+              onClick={scrollToTop}
+              className={`flex items-center gap-1.5 py-1 text-gray-300 hover:text-green-400 transition ${focusRing}`}
+            >
+              <ArrowUp size={14} />
+              Back to top
+            </button>
           </div>
         </div>
       </div>
