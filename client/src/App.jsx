@@ -1,3 +1,4 @@
+// src/App.jsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./App.css";
 
@@ -59,7 +60,7 @@ function App() {
 
         {/* Products */}
         <Route path="/Services/EduERP" element={<EduERP />} />
-        <Route path="/Services/RestaurantPOS" element={<RestaurantPOS />} />
+        <Route path="/industries/restaurant" element={<RestaurantPOS />} />
         <Route path="/Services/AbaccoGarage" element={<AbaccoGarage />} />
         <Route path="/Services/HospitalERP" element={<HospitalERP />} />
 
