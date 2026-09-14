@@ -209,8 +209,8 @@ const INDUSTRIES_MENU = [
       heading: "Others",
       color: "text-purple-600",
       items: [
-        { title: "Nonprofit Organization", path: "/industries/nonprofit-organization" },
-        { title: "Environmental Agency", path: "/industries/environmental-agency" },
+        { title: "Education ERP", path: "/industries/EduERP" },
+        { title: "Abacco Garage ERP", path: "/industries/AbaccoGarage" },
         { title: "Billboard Rental", path: "/industries/billboard-rental" },
         { title: "Photography", path: "/industries/photography" },
         { title: "Bike Leasing", path: "/industries/bike-leasing" },
@@ -310,6 +310,14 @@ export default function PremiumNavbar() {
   const headerRef = useRef(null);
 
   useEffect(() => {
+  if (openMenu) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "auto";
+  }
+}, [openMenu]);
+
+  useEffect(() => {
     function handleClickOutside(e) {
       if (headerRef.current && !headerRef.current.contains(e.target)) {
         setOpenMenu(null);
@@ -330,8 +338,14 @@ export default function PremiumNavbar() {
   return (
     <header
       ref={headerRef}
-      className="fixed top-0 left-0 w-full z-50 backdrop-blur-md bg-black/10 border-b border-white/10 shadow-lg"
+     className="fixed top-0 left-0 w-full z-50 bg-black/30 border-b border-white/10 shadow-lg"
     >
+      {openMenu && (
+    <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-md z-40"
+        onClick={() => setOpenMenu(null)}
+      />
+    )}
       {/* Main Navbar */}
       <div className="flex items-center justify-between px-6 md:px-10 py-4">
         {/* Logo */}
@@ -398,11 +412,16 @@ export default function PremiumNavbar() {
           {mobileMenu ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
-
+      {openMenu && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-md z-40"
+          onClick={() => setOpenMenu(null)}
+        />
+      )}
       {/* Desktop Mega Menus — centered under the whole navbar, not the trigger */}
       <div className="hidden lg:block">
         {openMenu === "apps" && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-[900px] max-w-[92vw] bg-[#0b0f19]/100 backdrop-blur-xl border border-white/10 rounded-b-xl shadow-2xl p-6 grid grid-cols-4 gap-6 animate-fade-slide">
+          <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 w-[900px] max-w-[92vw] bg-[#0b0f19]/100 backdrop-blur-xl border border-white/10 rounded-b-xl shadow-2xl p-6 grid grid-cols-4 gap-6 animate-fade-slide">
             {APPS_MENU.map((column, colIdx) => (
               <div key={colIdx} className="flex flex-col gap-6">
                 {column.map((group) => (
@@ -432,7 +451,7 @@ export default function PremiumNavbar() {
         )}
 
         {openMenu === "industries" && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-[900px] max-w-[92vw] bg-[#0b0f19]/100 backdrop-blur-xl border border-white/10 rounded-b-xl shadow-2xl p-6 animate-fade-slide">
+          <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 w-[900px] max-w-[92vw] bg-[#0b0f19]/100 backdrop-blur-xl border border-white/10 rounded-b-xl shadow-2xl p-6 animate-fade-slide">
             <div className="grid grid-cols-4 gap-6">
               {INDUSTRIES_MENU.map((column, colIdx) => (
                 <div key={colIdx} className="flex flex-col gap-6">
@@ -471,7 +490,7 @@ export default function PremiumNavbar() {
         )}
 
        {openMenu === "community" && (
-          <div className="absolute top-full right-5 mt-3 
+          <div className="absolute z-50 top-full right-5 mt-3 
           w-[820px] max-w-[92vw] 
           bg-[#0b0f19]/100 backdrop-blur-xl 
           border border-white/10 rounded-b-xl shadow-2xl 
@@ -625,6 +644,17 @@ export default function PremiumNavbar() {
           </a>
         </div>
       )}
+
+      <style jsx>{`
+        .animate-fade {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </header>
   );
 }

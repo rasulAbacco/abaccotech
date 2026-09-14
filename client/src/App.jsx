@@ -59,10 +59,10 @@ function App() {
         <Route path="/Services/aws-services" element={<AWSServices />} />
 
         {/* Products */}
-        <Route path="/Services/EduERP" element={<EduERP />} />
+        <Route path="/industries/EduERP" element={<EduERP />} />
         <Route path="/industries/restaurant" element={<RestaurantPOS />} />
-        <Route path="/Services/AbaccoGarage" element={<AbaccoGarage />} />
-        <Route path="/Services/HospitalERP" element={<HospitalERP />} />
+        <Route path="/industries/AbaccoGarage" element={<AbaccoGarage />} />
+        <Route path="/industries/HospitalERP" element={<HospitalERP />} />
 
         <Route path="/why-choose-us" element={<WhyChooseUs />} />
         <Route path="/pricing" element={<Pricing />} />
