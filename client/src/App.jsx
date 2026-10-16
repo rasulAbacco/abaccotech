@@ -42,6 +42,7 @@ import AbaccoGarage from "./pages/products/AbaccoGarage";
 import HospitalERP from "./pages/products/HospitalERP";
 import TermsAndConditions from "./pages/TermsAndConditions"
 import VendorEarnings from "./pages/dashboard/VendorEarnings";
+import ComingSoon from "./pages/ComingSoon";
 
 function App() {
   return (
@@ -63,6 +64,14 @@ function App() {
         <Route path="/industries/restaurant" element={<RestaurantPOS />} />
         <Route path="/industries/AbaccoGarage" element={<AbaccoGarage />} />
         <Route path="/industries/HospitalERP" element={<HospitalERP />} />
+
+        {/* Navbar dropdown items without a dedicated page yet → "Coming Soon".
+            Static routes above (e.g. /industries/restaurant) always take
+            priority over these dynamic ones. Content: src/data/comingSoonPages.js */}
+        <Route path="/apps/:slug" element={<ComingSoon section="apps" />} />
+        <Route path="/industries" element={<ComingSoon section="industries" />} />
+        <Route path="/industries/:slug" element={<ComingSoon section="industries" />} />
+        <Route path="/community/:slug" element={<ComingSoon section="community" />} />
 
         <Route path="/why-choose-us" element={<WhyChooseUs />} />
         <Route path="/pricing" element={<Pricing />} />
@@ -94,6 +103,9 @@ function App() {
         <Route path="/reports" element={<AdminRoute><Reports /></AdminRoute>} />
         <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="/admin/users/:id" element={<AdminRoute><UserDetails /></AdminRoute>} />
+
+        {/* Fallback: any unknown URL shows a styled "Page not found" instead of a blank screen */}
+        <Route path="*" element={<ComingSoon />} />
 
       </Routes>
     </BrowserRouter>
