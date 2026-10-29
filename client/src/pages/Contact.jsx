@@ -1,431 +1,248 @@
-import React, { useState } from "react";
-import Layout from "../Components/Layout";
+import React, { useEffect, useState } from "react";
 import {
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaFacebookF,
-  FaTwitter,
-  FaLinkedinIn,
-  FaInstagram,
-  FaClock,
-  FaCheckCircle,
-  FaRocket,
-  FaComments,
-  FaHeadset,
-  FaWhatsapp
-} from "react-icons/fa";
+  ArrowRight, ArrowUpRight, CheckCircle2, ChevronDown, Clock3, Code2,
+  Database, Globe2, Mail, MapPin, MessageCircle, Phone, ShieldCheck,
+  Smartphone, Workflow, Building2, BriefcaseBusiness
+} from "lucide-react";
+import Layout from "../Components/Layout";
+import "./Contact.css";
 
-function Contact() {
+const CONTACT = {
+  email: "info@abaccotech.com",
+  phoneDisplay: "+91 99724 52044",
+  phoneLink: "+919972452044",
+  address: "No 12, 13 & 12/A, Kirthan Arcade, 3rd Floor, Aditya Nagar, Sandeep Unnikrishnan Road, Bangalore - 560097",
+};
+const MAPS_URL = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(CONTACT.address);
+
+const INTEREST_OPTIONS = [
+  "The Motor Desk",
+  "Motor Konnect",
+  "Abacco Education ERP",
+  "Restaurant Billing",
+  "Super Market Billing",
+  "Custom CRM",
+  "Custom ERP",
+  "Website Development",
+  "Mobile App Development",
+  "Other",
+];
+
+const projectTypes = [
+  { icon: Globe2, title: "Websites & web applications", text: "Business websites, portals, and tailored web experiences." },
+  { icon: Smartphone, title: "Mobile applications", text: "Mobile app concepts, builds, and connected digital services." },
+  { icon: Database, title: "Custom CRM & ERP", text: "Business systems aligned to your team's real workflows." },
+  { icon: BriefcaseBusiness, title: "Billing & business software", text: "Billing, inventory, sales, and operations software." },
+  { icon: Workflow, title: "Integrations & automation", text: "Connect systems and reduce repetitive manual steps." },
+  { icon: Code2, title: "Product improvements", text: "Discuss an existing product, enhancement, or technical requirement." },
+];
+
+const faqs = [
+  {
+    question: "How do I request a quote?",
+    answer: "Share your requirements using the enquiry form or contact us directly by email or phone. Helpful details include your main goal, the users involved, and any deadline or existing system we should consider.",
+  },
+  {
+    question: "Which Abacco product is right for my business?",
+    answer: "Choose a product from the Interested In list and tell us about your day-to-day needs. Our team can discuss the product's intended use and help you identify the best next step.",
+  },
+  {
+    question: "Can you build a custom CRM or ERP?",
+    answer: "Yes, you can contact us to discuss a custom CRM, ERP, billing system, reporting dashboard, integration, or workflow automation. The scope and delivery approach are defined after understanding your requirements.",
+  },
+  {
+    question: "Does submitting this form send my enquiry directly?",
+    answer: "This page currently prepares an email in your device's default email application. You must review and send that email yourself. Direct website submission requires a backend or an approved form service to be connected.",
+  },
+];
+
+function ContactInfoCard({ icon: Icon, title, value, detail, href, external = false }) {
+  const content = (
+    <>
+      <span className="contact-info-icon"><Icon size={21} aria-hidden="true" /></span>
+      <span className="contact-info-copy">
+        <span className="contact-info-title">{title}</span>
+        <strong>{value}</strong>
+        <span className="contact-info-detail">{detail}</span>
+      </span>
+      <ArrowUpRight className="contact-info-arrow" size={17} aria-hidden="true" />
+    </>
+  );
+  return href ? <a className="contact-info-card" href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>{content}</a> : <div className="contact-info-card">{content}</div>;
+}
+
+export default function Contact() {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    fullName: "",
+    businessEmail: "",
     phone: "",
-    message: ""
+    company: "",
+    interestedIn: "",
+    budget: "",
+    message: "",
   });
+  const [formStatus, setFormStatus] = useState({ type: "", message: "" });
 
-  const [formStatus, setFormStatus] = useState(null);
+  useEffect(() => {
+    const oldTitle = document.title;
+    const descriptionText = "Contact Abacco Technology to discuss business software, automotive and education products, websites, mobile apps, custom CRM and ERP development.";
+    document.title = "Contact Us | Abacco Technology";
+    let description = document.querySelector('meta[name="description"]');
+    const created = !description;
+    if (!description) {
+      description = document.createElement("meta");
+      description.name = "description";
+      document.head.appendChild(description);
+    }
+    const oldDescription = description.content;
+    description.content = descriptionText;
+    return () => {
+      document.title = oldTitle;
+      if (created) description.remove();
+      else description.content = oldDescription;
+    };
+  }, []);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({ ...current, [name]: value }));
+    if (formStatus.type) setFormStatus({ type: "", message: "" });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setFormStatus("sending");
-
-  const formDataToSend = new FormData();
-  formDataToSend.append("name", formData.name);
-  formDataToSend.append("email", formData.email);
-  formDataToSend.append("phone", formData.phone);
-  formDataToSend.append("message", formData.message);
-
-  // FormSubmit extra fields (recommended)
-  formDataToSend.append("_captcha", "false");
-  formDataToSend.append("_template", "table");
-  formDataToSend.append("_autoresponse", "Thank you for contacting Abacco Technology!");
-
-  try {
-    await fetch("https://formsubmit.co/info@abaccotech.com", {
-      method: "POST",
-      body: formDataToSend,
-    });
-
-    setFormStatus("success");
-    setFormData({ name: "", email: "", phone: "", message: "" });
-    setTimeout(() => setFormStatus(null), 3000);
-  } catch (error) {
-    alert("Error sending message. Try again.");
-    setFormStatus(null);
-  }
-};
-
-
-
-  const contactInfo = [
-    {
-      icon: <FaEnvelope />,
-      title: "Email Us",
-      details: "info@abaccotech.com",
-      subtext: "We'll respond within 24 hours",
-      link: "mailto:info@abaccotech.com"
-    },
-    {
-      icon: <FaPhone />,
-      title: "Call Us",
-      details: "+91 9972452044",
-      subtext: "Mon-Sat, 9:00 AM - 6:00 PM IST",
-      link: "tel:+919972452044"
-    },
-    {
-      icon: <FaMapMarkerAlt />,
-      title: "Visit Us",
-      details: "No 12,13 & 12/A, Kirthan Arcade, 3rd",
-      subtext: "Floor, Aditya Nagar, Sandeep Unnikrishnan Road, Bangalore - 560097",
- 
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      setFormStatus({ type: "error", message: "Please check the highlighted fields and try again." });
+      return;
     }
-  ];
 
-  const quickLinks = [
-    {
-      icon: <FaRocket />,
-      title: "Start a Project",
-      desc: "Ready to begin? Let's discuss your requirements"
-    },
-    {
-      icon: <FaComments />,
-      title: "General Inquiry",
-      desc: "Have questions? We're here to help"
-    },
-    {
-      icon: <FaHeadset />,
-      title: "Technical Support",
-      desc: "Need assistance with existing projects?"
+    setFormStatus({ type: "preparing", message: "Preparing an email draft…" });
+    const subject = "Project enquiry — " + formData.interestedIn;
+    const body = [
+      "Project enquiry for Abacco Technology",
+      "",
+      "Full name: " + formData.fullName,
+      "Business email: " + formData.businessEmail,
+      "Phone: " + formData.phone,
+      "Company: " + (formData.company || "Not provided"),
+      "Interested in: " + formData.interestedIn,
+      "Project budget: " + (formData.budget || "Not specified"),
+      "",
+      "Message:",
+      formData.message,
+    ].join("\n");
+
+    try {
+      window.location.href = "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+      setFormStatus({
+        type: "draft",
+        message: "Your email application should open with a prepared draft. Review it and press Send in that application. This website has not sent the enquiry directly.",
+      });
+    } catch {
+      setFormStatus({
+        type: "error",
+        message: "We couldn't open your email application. Please email " + CONTACT.email + " directly instead.",
+      });
     }
-  ];
-
-  const socialLinks = [
-    { icon: <FaFacebookF />, url: "#", label: "Facebook" },
-    { icon: <FaTwitter />, url: "#", label: "Twitter" },
-    { icon: <FaLinkedinIn />, url: "https://www.linkedin.com/company/abaccotechnology", label: "LinkedIn" },
-    { icon: <FaInstagram />, url: "https://www.instagram.com/abaccotechnology/", label: "Instagram" }
-  ];
+  };
 
   return (
     <Layout>
-      <div className="">
-        <section className="text-white min-h-screen py-20">
-          <div className="container mx-auto px-6">
-            {/* Heading */}
-            <div className="text-center mb-16 animate-fade-in">
-              <h2 className="text-4xl md:text-5xl font-bold text-white-500 mb-4 mt-10">
-                Contact Us
-              </h2>
-              <p className="text-lg text-gray-300 mt-4 max-w-2xl mx-auto leading-relaxed">
-                Let's Discuss Your Next Project – We're here to help you turn your
-                ideas into reality.
-              </p>
+      <main className="contact-page">
+        <section className="contact-hero">
+          <div className="contact-hero-orb contact-orb-one" aria-hidden="true" />
+          <div className="contact-hero-orb contact-orb-two" aria-hidden="true" />
+          <div className="contact-container contact-hero-inner">
+            <div className="contact-hero-copy">
+              <span className="contact-eyebrow"><span /> CONTACT ABACCO</span>
+              <h1>Let's Talk About Your <em>Next Project</em></h1>
+              <p>Tell us about your business requirements, software idea, or questions about our products. Our team is ready to discuss the next steps.</p>
+              <a className="contact-button contact-button-primary" href="#contact-form">Tell Us About Your Project <ArrowRight size={17} /></a>
+              <div className="contact-hero-reassurance"><ShieldCheck size={16} /> Your enquiry details are used to help respond to your request.</div>
             </div>
-
-            {/* Contact Info Cards */}
-            <div className="grid md:grid-cols-3 gap-6 mb-16">
-              {contactInfo.map((item, index) => (
-                <a
-                  key={index}
-                //   href={item.link}
-                  className="group bg-white/5 backdrop-blur border border-white/10 rounded-xl p-6 hover:bg-white/10 hover:border-green-500/50 hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 cursor-pointer"
-                  style={{
-                    animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
-                  }}
-                >
-                  <div className="text-4xl text-green-500 mb-4 transition-transform duration-300 group-hover:scale-105 group-hover:brightness-110">
-                    {item.icon}
-                  </div>
-
-                  <h3 className="text-xl font-bold text-white mb-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-green-400 font-medium mb-1">
-                    {item.details}
-                  </p>
-                  <p className="text-gray-400 text-sm">
-                    {item.subtext}
-                  </p>
-                </a>
-              ))}
-            </div>
-
-            {/* Main Content Grid */}
-            <div className="grid lg:grid-cols-2 gap-10 mb-16">
-              {/* Left Side - Get In Touch */}
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-3xl font-bold text-white mb-4 flex items-center gap-3">
-                    <span className="text-green-500">Get In Touch</span>
-                  </h3>
-                  <p className="text-gray-300 leading-relaxed mb-6">
-                    Reach out to us for business inquiries, project discussions, or
-                    collaboration opportunities. We're excited to hear from you!
-                  </p>
-                </div>
-
-                {/* Quick Links */}
-                <div className="space-y-4">
-                  <h4 className="text-xl font-semibold text-white mb-4">
-                    How Can We Help?
-                  </h4>
-                  {quickLinks.map((item, index) => (
-                    <div
-                      key={index}
-                      className="group flex items-start gap-4 bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4 hover:bg-white/10 hover:border-green-500/50 transition-all duration-300 cursor-pointer"
-                    >
-                      <div className="text-2xl text-green-500 mt-1 group-hover:scale-110 transition-transform duration-300">
-                        {item.icon}
-                      </div>
-                      <div>
-                        <h5 className="text-white font-semibold mb-1">
-                          {item.title}
-                        </h5>
-                        <p className="text-gray-400 text-sm">
-                          {item.desc}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Business Hours */}
-                <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 backdrop-blur border border-green-500/20 rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <FaClock className="text-2xl text-green-500" />
-                    <h4 className="text-xl font-semibold text-white">
-                      Business Hours
-                    </h4>
-                  </div>
-                  <div className="space-y-2 text-gray-300">
-                    <p className="flex justify-between">
-                      <span>Monday - Friday:</span>
-                      <span className="text-green-400 font-medium">5:30 PM - 3:30 AM</span>
-                    </p>
-                    {/* <p className="flex justify-between">
-                      <span>Saturday:</span>
-                      <span className="text-green-400 font-medium">02:00 PM - 10:00 PM</span>
-                    </p> */}
-                    <p className="flex justify-between">
-                      <span>Saturday & Sunday:</span>
-                      <span className="text-gray-500">Closed</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Social Media */}
-                <div>
-                  <h4 className="text-xl font-semibold text-white mb-4">
-                    Connect With Us
-                  </h4>
-                  <div className="flex gap-4">
-                    {socialLinks.map((social, index) => (
-                      <a
-                        key={index}
-                        href={social.url}
-                        aria-label={social.label}
-                        className="w-12 h-12 flex items-center justify-center bg-white/5 backdrop-blur border border-white/10 rounded-lg text-gray-300 hover:bg-green-500 hover:text-white hover:border-green-500 hover:scale-110 hover:rotate-6 transition-all duration-300"
-                      >
-                        {social.icon}
-                      </a>
-                    ))}
-                  </div>
-                </div>
+            <div className="contact-hero-art" aria-hidden="true">
+              <div className="contact-art-halo" />
+              <div className="contact-art-window">
+                <div className="contact-art-window-top"><span /><span /><span /><b>Project workspace</b></div>
+                <div className="contact-art-window-content"><div className="contact-art-sidebar"><i /><i /><i /><i /></div><div className="contact-art-main"><div className="contact-art-heading" /><div className="contact-art-cards"><i /><i /><i /></div><div className="contact-art-lines"><i /><i /><i /><i /></div><div className="contact-art-progress"><span /></div></div></div>
               </div>
-
-              {/* Right Side - Contact Form */}
-              <div className="lg:sticky lg:top-24 h-fit">
-                <form
-                  onSubmit={handleSubmit}
-                  className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-8 space-y-5 hover:border-green-500/30 transition-all duration-300"
-                >
-                  <h3 className="text-2xl font-bold text-white mb-6">
-                    Send us a Message
-                  </h3>
-
-                  <div className="group">
-                    <label className="block text-gray-300 mb-2 font-medium">
-                      Your Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      placeholder="Enter your full name"
-                      className="w-full px-4 py-3 rounded-lg bg-gray-800/50 text-white border border-gray-700 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all duration-300"
-                    />
-                  </div>
-
-                  <div className="group">
-                    <label className="block text-gray-300 mb-2 font-medium">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      placeholder="your.email@example.com"
-                      className="w-full px-4 py-3 rounded-lg bg-gray-800/50 text-white border border-gray-700 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all duration-300"
-                    />
-                  </div>
-
-                  <div className="group">
-                    <label className="block text-gray-300 mb-2 font-medium">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="+91 XXXXX XXXXX"
-                      className="w-full px-4 py-3 rounded-lg bg-gray-800/50 text-white border border-gray-700 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all duration-300"
-                    />
-                  </div>
-
-                  <div className="group">
-                    <label className="block text-gray-300 mb-2 font-medium">
-                      Your Message *
-                    </label>
-                    <textarea
-                      name="message"
-                      value={formData.message}
-                      onChange={handleChange}
-                      required
-                      placeholder="Tell us about your project or inquiry..."
-                      rows="5"
-                      className="w-full px-4 py-3 rounded-lg bg-gray-800/50 text-white border border-gray-700 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none resize-none transition-all duration-300"
-                    ></textarea>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={formStatus === "sending"}
-                    className="w-full bg-green-500 hover:bg-green-600 text-white py-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {formStatus === "sending" ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Sending...
-                      </>
-                    ) : formStatus === "success" ? (
-                      <>
-                        <FaCheckCircle /> Message Sent!
-                      </>
-                    ) : (
-                      "Send Message"
-                    )}
-                  </button>
-
-                  {formStatus === "success" && (
-                    <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 text-center animate-fade-in">
-                      <p className="text-green-400 font-medium">
-                        Thank you! We'll get back to you soon.
-                      </p>
-                    </div>
-                  )}
-                </form>
-              </div>
-            </div>
-
-            {/* Map Section */}
-            <div className="mb-16">
-            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl overflow-hidden hover:border-green-500/30 transition-all duration-300">
-                <div className=" ">
-                <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3886.232682654666!2d77.55273030000001!3d13.084434600000002!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae2387c5242ab3%3A0xb5933098d4ce3ad9!2sAbacco%20technology!5e0!3m2!1sen!2sin!4v1762358158494!5m2!1sen!2sin"
-                    className="w-full h-120 border-0"
-                    allowFullScreen=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                ></iframe>
-                </div>
-            </div>
-            </div>
-
-
-            {/* CTA */}
-            <div className="text-center bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-2xl p-12 border border-green-500/20">
-              <h3 className="text-3xl font-bold text-white mb-4">
-                Ready to Start Your Project?
-              </h3>
-              <p className="text-gray-300 max-w-2xl mx-auto mb-6 leading-relaxed">
-                We typically respond within a few hours. Let's build something
-                great together! Our team is eager to discuss your ideas and provide
-                tailored solutions for your business.
-              </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                <a
-                  href="https://wa.me/919972452044?text=Hi%2C%20I%20need%20support%20regarding%20your%20services."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/50"
-                >
-                  <FaWhatsapp /> WhatsApp
-                </a>
-
-                <a
-                  href="mailto:info@abaccotech.com"
-                  className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-green-500/50 px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
-                >
-                  <FaEnvelope /> Email Us
-                </a>
-              </div>
+              <div className="contact-art-message"><MessageCircle size={18} /><span><b>Let's connect</b><small>Ideas start with a conversation</small></span></div>
+              <div className="contact-art-code"><Code2 size={22} /></div>
             </div>
           </div>
         </section>
 
-        {/* Add CSS for animations */}
-        <style jsx>{`
-          @keyframes fadeInUp {
-            from {
-              opacity: 0;
-              transform: translateY(30px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
+        <section className="contact-details-section" aria-labelledby="contact-details-title">
+          <div className="contact-container">
+            <div className="contact-section-heading contact-heading-left">
+              <span className="contact-eyebrow">GET IN TOUCH</span>
+              <h2 id="contact-details-title">We're easy to reach.</h2>
+              <p>Choose the contact method that works best for you.</p>
+            </div>
+            <div className="contact-info-grid">
+              <ContactInfoCard icon={Mail} title="Email our team" value={CONTACT.email} detail="Send us your project questions" href={"mailto:" + CONTACT.email} />
+              <ContactInfoCard icon={Phone} title="Call our team" value={CONTACT.phoneDisplay} detail="Talk through your requirements" href={"tel:" + CONTACT.phoneLink} />
+              <ContactInfoCard icon={MapPin} title="Visit our office" value="Bengaluru, Karnataka" detail="View the published office address" href={MAPS_URL} external />
+            </div>
+            <div className="contact-address-strip"><MapPin size={19} /><div><strong>Office address</strong><p>{CONTACT.address}</p></div><a href={MAPS_URL} target="_blank" rel="noopener noreferrer">Get directions <ArrowUpRight size={15} /></a></div>
+          </div>
+        </section>
 
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-            }
-            to {
-              opacity: 1;
-            }
-          }
+        <section className="contact-form-section" id="contact-form">
+          <div className="contact-container contact-form-layout">
+            <div className="contact-form-intro">
+              <span className="contact-eyebrow">START A CONVERSATION</span>
+              <h2>Tell us what you have in mind.</h2>
+              <p>Whether you have a clear specification or are still exploring an idea, share a few details and we can take it from there.</p>
+              <div className="contact-form-points">
+                <div><span><CheckCircle2 size={18} /></span><p><strong>Understand your needs</strong><small>Tell us about your goals and current challenges.</small></p></div>
+                <div><span><CheckCircle2 size={18} /></span><p><strong>Discuss the right approach</strong><small>We can explore existing products or custom development.</small></p></div>
+                <div><span><CheckCircle2 size={18} /></span><p><strong>Plan the next step</strong><small>Share any useful context, budget, or timing.</small></p></div>
+              </div>
+              <div className="contact-direct-note"><Mail size={18} /><span>Prefer email? <a href={"mailto:" + CONTACT.email}>{CONTACT.email}</a></span></div>
+            </div>
 
-          .animate-fade-in {
-            animation: fadeIn 0.8s ease-out;
-          }
+            <form className="contact-form-card" onSubmit={handleSubmit} noValidate>
+              <div className="contact-form-card-heading"><span className="contact-form-symbol"><MessageCircle size={20} /></span><div><h3>Project enquiry</h3><p>Fields marked * are required.</p></div></div>
+              <div className="contact-form-grid">
+                <div className="contact-field"><label htmlFor="contact-fullName">Full Name <span>*</span></label><input id="contact-fullName" name="fullName" autoComplete="name" placeholder="Your full name" value={formData.fullName} onChange={handleChange} required minLength={2} /></div>
+                <div className="contact-field"><label htmlFor="contact-businessEmail">Business Email <span>*</span></label><input id="contact-businessEmail" name="businessEmail" type="email" autoComplete="email" placeholder="you@company.com" value={formData.businessEmail} onChange={handleChange} required /></div>
+                <div className="contact-field"><label htmlFor="contact-phone">Phone Number <span>*</span></label><input id="contact-phone" name="phone" type="tel" autoComplete="tel" placeholder="+91 ..." value={formData.phone} onChange={handleChange} required minLength={7} /></div>
+                <div className="contact-field"><label htmlFor="contact-company">Company Name <small>(optional)</small></label><input id="contact-company" name="company" autoComplete="organization" placeholder="Your company" value={formData.company} onChange={handleChange} /></div>
+                <div className="contact-field"><label htmlFor="contact-interestedIn">Interested In <span>*</span></label><div className="contact-select-wrap"><select id="contact-interestedIn" name="interestedIn" value={formData.interestedIn} onChange={handleChange} required><option value="" disabled>Select a product or service</option>{INTEREST_OPTIONS.map((option) => <option value={option} key={option}>{option}</option>)}</select><ChevronDown size={16} aria-hidden="true" /></div></div>
+                <div className="contact-field"><label htmlFor="contact-budget">Project Budget <small>(optional)</small></label><div className="contact-select-wrap"><select id="contact-budget" name="budget" value={formData.budget} onChange={handleChange}><option value="">Choose a budget range</option><option value="Not decided yet">Not decided yet</option><option value="Under ₹50,000">Under ₹50,000</option><option value="₹50,000–₹2,00,000">₹50,000–₹2,00,000</option><option value="₹2,00,000–₹5,00,000">₹2,00,000–₹5,00,000</option><option value="₹5,00,000+">₹5,00,000+</option><option value="Prefer to discuss">Prefer to discuss</option></select><ChevronDown size={16} aria-hidden="true" /></div></div>
+                <div className="contact-field contact-field-full"><label htmlFor="contact-message">Message <span>*</span></label><textarea id="contact-message" name="message" placeholder="Tell us a little about your project, requirements, or questions..." rows={5} value={formData.message} onChange={handleChange} required minLength={10} /></div>
+              </div>
+              {formStatus.message && <div className={"contact-form-status " + formStatus.type} role="status" aria-live="polite">{formStatus.type === "preparing" && <span className="contact-loading-spinner" aria-hidden="true" />}{formStatus.type === "draft" && <CheckCircle2 size={18} />}{formStatus.type === "error" && <ShieldCheck size={18} />}{formStatus.message}</div>}
+              <button className="contact-button contact-button-primary contact-submit" type="submit" disabled={formStatus.type === "preparing"}>{formStatus.type === "preparing" ? "Preparing email…" : "Prepare Email Enquiry"} <ArrowRight size={16} /></button>
+              <p className="contact-privacy-note"><ShieldCheck size={15} /> Please avoid including passwords or sensitive personal information. Selecting the button opens your email application; you must send the message from there.</p>
+            </form>
+          </div>
+        </section>
 
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
+        <section className="contact-projects-section">
+          <div className="contact-container">
+            <div className="contact-section-heading"><span className="contact-eyebrow">HOW WE CAN HELP</span><h2>Let's make your next idea practical.</h2><p>Talk to us about a new digital product or a better way to manage your business operations.</p></div>
+            <div className="contact-project-grid">{projectTypes.map(({icon: Icon,title,text})=><article className="contact-project-card" key={title}><span><Icon size={21} /></span><h3>{title}</h3><p>{text}</p></article>)}</div>
+          </div>
+        </section>
 
-          .animate-spin {
-            animation: spin 1s linear infinite;
-          }
-        `}</style>
-      </div>
+        <section className="contact-map-section">
+          <div className="contact-container contact-map-panel">
+            <div className="contact-map-copy"><span className="contact-eyebrow">FIND OUR OFFICE</span><h2>Let's meet in Bengaluru.</h2><p>{CONTACT.address}</p><a className="contact-button contact-button-primary" href={MAPS_URL} target="_blank" rel="noopener noreferrer">Open Google Maps <ArrowUpRight size={16} /></a></div>
+            <a className="contact-map-visual" href={MAPS_URL} target="_blank" rel="noopener noreferrer" aria-label="Open Abacco Technology's published office address in Google Maps"><div className="contact-map-grid" aria-hidden="true" /><div className="contact-map-road road-one" /><div className="contact-map-road road-two" /><div className="contact-map-road road-three" /><div className="contact-map-pin"><MapPin size={28} fill="currentColor" /><span>Abacco Technology</span></div><div className="contact-map-caption"><MapPin size={15} /> Open location in Google Maps <ArrowUpRight size={15} /></div></a>
+          </div>
+        </section>
+
+        <section className="contact-faq-section">
+          <div className="contact-container contact-faq-layout">
+            <div className="contact-faq-heading"><span className="contact-eyebrow">QUICK ANSWERS</span><h2>Questions before we talk?</h2><p>Here are a few useful things to know before sending your enquiry.</p><a href={"mailto:" + CONTACT.email}>Still have a question? Email us <ArrowRight size={15} /></a></div>
+            <div className="contact-faq-list">{faqs.map((faq,index)=><details className="contact-faq-item" key={faq.question} open={index===0}><summary>{faq.question}<ChevronDown size={18} /></summary><p>{faq.answer}</p></details>)}</div>
+          </div>
+        </section>
+      </main>
     </Layout>
   );
 }
-
-export default Contact;
