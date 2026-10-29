@@ -125,7 +125,7 @@ const products = [
     name: "Motor Konnect",
     category: "Automotive services",
     description:
-      "A connected automotive platform built around service discovery and customer-to-service connections.",
+      "An automotive platform designed around service booking, spare parts, technician connections, and SOS assistance.",
     url: "https://www.motorkonnect.com/",
     domain: "motorkonnect.com",
     icon: CarFront,
@@ -194,9 +194,9 @@ const steps = [
   },
 ];
 
-function SectionEyebrow({ children }) {
+function SectionEyebrow({ children, light = false }) {
   return (
-    <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[#237548]">
+    <span className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] ${light ? "text-[#c6e5ce]" : "text-[#237548]"}`}>
       <span className="h-px w-7 bg-[#5d9a72]" />
       {children}
     </span>
@@ -520,7 +520,7 @@ function About() {
             <div className="pointer-events-none absolute -left-14 -top-20 h-64 w-64 rounded-full border border-white/10" />
             <div className="pointer-events-none absolute -bottom-28 -right-10 h-80 w-80 rounded-full border border-white/10" />
             <div className="relative mx-auto max-w-3xl">
-              <SectionEyebrow>Have a challenge in mind?</SectionEyebrow>
+              <SectionEyebrow light>Have a challenge in mind?</SectionEyebrow>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl">
                 Let’s build something meaningful together.
               </h2>
