@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   Blocks,
   BookOpen,
-  Building2,
   CheckCircle2,
   Cloud,
   Code2,
