@@ -405,6 +405,9 @@ export default function PremiumNavbar() {
           <a href="/contact" className="hover:text-green-400 transition flex items-center gap-1.5">
             <Phone size={16} /> Contact Us
           </a>
+          <a href="/sign-in" className="hover:text-green-400 transition flex items-center gap-1.5">
+            <Users size={16} /> Login
+          </a>
         </nav>
 
         {/* Mobile Menu Icon */}

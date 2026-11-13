@@ -12,7 +12,8 @@ import {
   LogOut,
   User,
   Briefcase,
-  Wallet 
+  Wallet,
+  MessageCircle,
 } from "lucide-react";
 
 const allMenuItems = [
@@ -29,6 +30,8 @@ const allMenuItems = [
   { label: "Renewals", icon: RefreshCw, path: "/renewals", adminOnly: true },
   { label: "Renewal Cancelled", icon: XCircle, path: "/renewals-cancelled", adminOnly: true },
   { label: "Reports", icon: BarChart3, path: "/reports", adminOnly: true },
+  // 🆕 WhatsApp campaigns — templates, contacts, bulk sending, reports
+  { label: "WhatsApp", icon: MessageCircle, path: "/whatsapp", adminOnly: true },
 
   { label: "Settings", icon: Settings, path: "/settings", adminOnly: false },
 
