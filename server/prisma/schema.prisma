@@ -135,3 +135,121 @@ model SyncState {
   key   String @id
   value String
 }
+
+// ─────────────────────────────────────────────────────────────
+// 🆕 WhatsApp Campaigns (Meta WhatsApp Cloud API)
+// Credentials (token, phone number id, WABA id, app secret) live ONLY in
+// server/.env — never in the database or the React app.
+// ─────────────────────────────────────────────────────────────
+
+// A person we can message. Phone is stored in E.164 digits without "+"
+// (e.g. "919876543210"), which is exactly what the Cloud API expects.
+model WhatsAppContact {
+  id         Int       @id @default(autoincrement())
+  phone      String    @unique
+  name       String?
+  tag        String? // import label / segment, e.g. "supermarkets-oct"
+  optedIn    Boolean   @default(true) // only import contacts who agreed to receive messages
+  optedOutAt DateTime? // set when they reply STOP or an admin opts them out
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  recipients WhatsAppCampaignRecipient[]
+
+  @@index([tag])
+}
+
+// 🆕 Local copy of the message templates that live in Meta (WhatsApp
+// Manager). Filled by "Sync from Meta" — never created by hand here.
+// Stores each template's structure so the dashboard can build the right
+// form (header media / variables / buttons) for ANY template.
+model WhatsAppTemplate {
+  id              Int      @id @default(autoincrement())
+  metaTemplateId  String   @unique // template id in Meta
+  name            String
+  language        String // e.g. "en", "en_US"
+  category        String? // MARKETING | UTILITY | AUTHENTICATION
+  status          String // APPROVED | PENDING | REJECTED | PAUSED | DISABLED | DELETED (deleted = gone from Meta)
+  parameterFormat String   @default("POSITIONAL") // POSITIONAL ({{1}}) | NAMED ({{customer_name}})
+  headerFormat    String? // TEXT | IMAGE | VIDEO | DOCUMENT | LOCATION | null (no header)
+  headerText      String? // header text when headerFormat = TEXT
+  headerVariables Json? // variable names inside a TEXT header, e.g. ["1"]
+  bodyText        String?
+  bodyVariables   Json? // e.g. ["1","2"] or ["customer_name","offer"]
+  footerText      String?
+  buttons         Json? // [{ index, type, text, url?, hasVariable }]
+  components      Json // raw components exactly as Meta returned them
+  lastSyncedAt    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  campaigns WhatsAppCampaign[]
+
+  @@unique([name, language])
+  @@index([status])
+}
+
+model WhatsAppCampaign {
+  id             Int               @id @default(autoincrement())
+  name           String
+  template       WhatsAppTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateId     Int?
+  templateName   String // copied from the template at creation (kept even if the template is later deleted)
+  languageCode   String            @default("en")
+  headerImageUrl String? // public HTTPS link for IMAGE / VIDEO / DOCUMENT headers
+  headerParams   Json? // values for TEXT-header variables
+  bodyParams     Json? // ["{{name}}", "20% off"] — {{name}} is replaced per contact
+  buttonParams   Json? // { "0": "summer-sale" } — values for dynamic URL / copy-code buttons, keyed by button index
+  audienceTag    String? // null = all opted-in contacts
+  status         String            @default("DRAFT") // DRAFT | SCHEDULED | SENDING | PAUSED | COMPLETED | FAILED | CANCELLED
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  lastError      String?
+  createdById    Int?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  recipients WhatsAppCampaignRecipient[]
+
+  @@index([status, scheduledAt])
+}
+
+// One row per (campaign, contact) — the unique index is the duplicate-send guard.
+model WhatsAppCampaignRecipient {
+  id            Int              @id @default(autoincrement())
+  campaign      WhatsAppCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId    Int
+  contact       WhatsAppContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId     Int
+  phone         String
+  status        String           @default("PENDING") // PENDING | QUEUED | ACCEPTED | SENT | DELIVERED | READ | FAILED | SKIPPED | CANCELLED
+  messageId     String?          @unique // wamid returned by Meta
+  attempts      Int              @default(0)
+  nextAttemptAt DateTime? // 🆕 retry back-off for temporary Meta errors
+  errorCode     String?
+  errorText     String?
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  failedAt      DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId, status])
+}
+
+// Raw webhook status events, kept for auditing and to ignore duplicates
+// (Meta can deliver the same event more than once).
+model WhatsAppWebhookEvent {
+  id          Int       @id @default(autoincrement())
+  eventKey    String    @unique // `${messageId}:${status}` or `msg:${incomingId}`
+  messageId   String?
+  status      String?
+  payload     Json
+  processedAt DateTime? // 🆕 null = not yet matched to a campaign recipient
+  createdAt   DateTime  @default(now())
+
+  @@index([processedAt, createdAt])
+}

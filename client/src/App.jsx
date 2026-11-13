@@ -43,6 +43,12 @@ import HospitalERP from "./pages/products/HospitalERP";
 import TermsAndConditions from "./pages/TermsAndConditions"
 import VendorEarnings from "./pages/dashboard/VendorEarnings";
 import ComingSoon from "./pages/ComingSoon";
+// 🆕 WhatsApp campaigns (admin only) — all files live in pages/dashboard/whatsapp/
+import WhatsAppCampaigns from "./pages/dashboard/whatsapp/WhatsAppCampaigns";
+import WhatsAppCampaignForm from "./pages/dashboard/whatsapp/WhatsAppCampaignForm";
+import WhatsAppCampaignDetails from "./pages/dashboard/whatsapp/WhatsAppCampaignDetails";
+import WhatsAppTemplates from "./pages/dashboard/whatsapp/WhatsAppTemplates";
+import WhatsAppContacts from "./pages/dashboard/whatsapp/WhatsAppContacts";
 
 function App() {
   return (
@@ -103,6 +109,14 @@ function App() {
         <Route path="/reports" element={<AdminRoute><Reports /></AdminRoute>} />
         <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         <Route path="/admin/users/:id" element={<AdminRoute><UserDetails /></AdminRoute>} />
+
+        {/* 🆕 WhatsApp campaigns — admin only */}
+        <Route path="/whatsapp" element={<AdminRoute><WhatsAppCampaigns /></AdminRoute>} />
+        <Route path="/whatsapp/campaigns/new" element={<AdminRoute><WhatsAppCampaignForm /></AdminRoute>} />
+        <Route path="/whatsapp/campaigns/:id" element={<AdminRoute><WhatsAppCampaignDetails /></AdminRoute>} />
+        <Route path="/whatsapp/campaigns/:id/edit" element={<AdminRoute><WhatsAppCampaignForm /></AdminRoute>} />
+        <Route path="/whatsapp/templates" element={<AdminRoute><WhatsAppTemplates /></AdminRoute>} />
+        <Route path="/whatsapp/contacts" element={<AdminRoute><WhatsAppContacts /></AdminRoute>} />
 
         {/* Fallback: any unknown URL shows a styled "Page not found" instead of a blank screen */}
         <Route path="*" element={<ComingSoon />} />

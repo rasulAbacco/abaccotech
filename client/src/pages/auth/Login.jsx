@@ -17,43 +17,53 @@ export default function Login() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
+  try {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: form.email.trim(),
+        password: form.password,
+      }),
+    });
+
+    // Read as text first so a non-JSON reply (HTML error page, wrong server) doesn't crash
+    const raw = await res.text();
+    let data = {};
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Login failed");
-        setLoading(false);
-        return;
-      }
-
-      // Save token + user for later use across the app
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      // Send admins and regular users to different places
-      if (data.user.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      data = {};
     }
-  };
+
+    if (!res.ok) {
+      setError(
+        data.message || data.error || data.msg || `Login failed (HTTP ${res.status})`
+      );
+      return;
+    }
+
+    if (!data.token || !data.user) {
+      setError("Unexpected response from server. Check that VITE_API_URL points to the Abacco backend.");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    navigate(data.user.role === "admin" ? "/admin" : "/dashboard");
+  } catch (err) {
+    console.error("Login error:", err);
+    setError("Cannot reach the server. Is the backend running?");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Layouts>
