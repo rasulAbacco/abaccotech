@@ -34,7 +34,9 @@ const STUCK_AFTER_MS = 10 * 60_000;
 const EARLY_FAILURE_LIMIT = 10; // stop a campaign whose first N sends all fail
 
 const EDITABLE = new Set(["DRAFT"]);
-const DELETABLE = new Set(["DRAFT", "COMPLETED", "FAILED", "CANCELLED"]);
+// 🆕 Everything except SENDING can be deleted (pause or cancel a sending campaign first).
+const DELETABLE = new Set(["DRAFT", "SCHEDULED", "PAUSED", "COMPLETED", "FAILED", "CANCELLED"]);
+const MAX_BULK_DELETE = 500;
 
 export class CampaignError extends Error {
   constructor(message, status = 400, details) {
@@ -220,12 +222,44 @@ export async function listRecipients(id, { status, search, page = 1, pageSize = 
   return { total, page: Math.floor(skip / take) + 1, pageSize: take, recipients };
 }
 
+// Deletes the campaign and its report (recipient rows). Contacts are kept,
+// and messages already sent stay delivered — nothing is recalled.
 export async function deleteCampaign(id) {
   const campaign = await getCampaignOrThrow(id);
   if (!DELETABLE.has(campaign.status)) {
-    throw new CampaignError(`A ${campaign.status} campaign can't be deleted — pause or cancel it first`, 409);
+    throw new CampaignError(`"${campaign.name}" is sending right now — pause or cancel it first, then delete`, 409);
   }
-  await prisma.whatsAppCampaign.delete({ where: { id: campaign.id } });
+  // Status re-checked in the delete itself, in case it started sending meanwhile.
+  const { count } = await prisma.whatsAppCampaign.deleteMany({
+    where: { id: campaign.id, status: { in: [...DELETABLE] } },
+  });
+  if (!count) throw new CampaignError(`"${campaign.name}" just started sending — pause or cancel it first`, 409);
+}
+
+// 🆕 Bulk delete. Campaigns that are sending are skipped (and reported), the rest are deleted.
+export async function deleteCampaigns(ids) {
+  const list = [...new Set((Array.isArray(ids) ? ids : []).map(Number))].filter((n) => Number.isInteger(n) && n > 0);
+  if (!list.length) throw new CampaignError("Select at least one campaign");
+  if (list.length > MAX_BULK_DELETE) throw new CampaignError(`You can delete up to ${MAX_BULK_DELETE} campaigns at a time`);
+
+  const found = await prisma.whatsAppCampaign.findMany({
+    where: { id: { in: list } },
+    select: { id: true, name: true, status: true },
+  });
+  const deletable = found.filter((c) => DELETABLE.has(c.status)).map((c) => c.id);
+  const { count } = deletable.length
+    ? await prisma.whatsAppCampaign.deleteMany({ where: { id: { in: deletable }, status: { in: [...DELETABLE] } } })
+    : { count: 0 };
+
+  const remaining = await prisma.whatsAppCampaign.findMany({
+    where: { id: { in: found.map((c) => c.id) } },
+    select: { id: true, name: true, status: true },
+  });
+  return {
+    deleted: count,
+    skipped: remaining.map((c) => ({ ...c, reason: "Sending right now — pause or cancel it first" })),
+    notFound: list.length - found.length,
+  };
 }
 
 // ── Launch / schedule / pause / resume / cancel / retry ─────────────────

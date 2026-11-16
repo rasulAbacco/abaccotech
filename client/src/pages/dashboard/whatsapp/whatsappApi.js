@@ -80,6 +80,7 @@ export const waApi = {
   createCampaign: (body) => waRequest("/campaigns", { method: "POST", body }),
   updateCampaign: (id, body) => waRequest(`/campaigns/${id}`, { method: "PUT", body }),
   deleteCampaign: (id) => waRequest(`/campaigns/${id}`, { method: "DELETE" }),
+  deleteCampaigns: (ids) => waRequest("/campaigns/bulk-delete", { method: "POST", body: { ids } }),
   recipients: (id, params) => waRequest(`/campaigns/${id}/recipients${q(params)}`),
   launch: (id, scheduledAt) =>
     waRequest(`/campaigns/${id}/launch`, { method: "POST", body: scheduledAt ? { scheduledAt } : {} }),

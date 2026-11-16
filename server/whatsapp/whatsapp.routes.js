@@ -54,6 +54,7 @@ router.delete("/contacts/:id", wa.removeContact);
 router.get("/campaigns", wa.getCampaigns);
 router.post("/campaigns", wa.postCampaign);
 router.post("/campaigns/test-send", wa.testSend);
+router.post("/campaigns/bulk-delete", wa.bulkRemoveCampaigns); // 🆕 before /campaigns/:id routes
 router.get("/campaigns/:id", wa.getCampaign);
 router.put("/campaigns/:id", wa.putCampaign);
 router.delete("/campaigns/:id", wa.removeCampaign);

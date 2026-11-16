@@ -248,7 +248,7 @@ export default function WhatsAppCampaignDetails() {
           <XCircle className="w-4 h-4" /> Cancel
         </button>
       )}
-      {["DRAFT", "COMPLETED", "FAILED", "CANCELLED"].includes(c.status) && (
+      {c.status !== "SENDING" && (
         <button onClick={remove} disabled={acting} className={dangerBtn} aria-label="Delete campaign">
           <Trash2 className="w-4 h-4" />
         </button>

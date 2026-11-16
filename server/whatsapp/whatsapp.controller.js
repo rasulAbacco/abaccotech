@@ -20,6 +20,7 @@ import {
   cancelCampaign,
   createCampaign,
   deleteCampaign,
+  deleteCampaigns,
   getCampaignDetails,
   launchCampaign,
   listCampaigns,
@@ -153,6 +154,9 @@ export const postCampaign = handle(async (req, res) => {
 export const getCampaign = handle(async (req) => ({ campaign: await getCampaignDetails(idParam(req)) }));
 
 export const putCampaign = handle(async (req) => ({ campaign: await updateCampaign(idParam(req), req.body || {}) }));
+
+// 🆕 body: { ids: [1, 2, 3] }
+export const bulkRemoveCampaigns = handle(async (req) => deleteCampaigns(req.body?.ids));
 
 export const removeCampaign = handle(async (req) => {
   await deleteCampaign(idParam(req));
