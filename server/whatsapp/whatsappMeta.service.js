@@ -104,9 +104,9 @@ async function graphRequest(url, { method = "GET", body, token }) {
       method,
       headers: {
         Authorization: `Bearer ${token}`,
-        ...(body ? { "Content-Type": "application/json" } : {}),
+        ...(body && !(body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (err) {
@@ -233,6 +233,59 @@ export async function checkConnection() {
     });
   }
   return result;
+}
+
+// 🟢 GET /{TEMPLATE_ID} — one template's current components (fresh sample-media link).
+export async function fetchTemplateById(metaTemplateId) {
+  const c = requireConfig("token");
+  return graphRequest(`${c.baseUrl}/${c.apiVersion}/${metaTemplateId}?fields=id,name,components`, { token: c.token });
+}
+
+export class HeaderMediaError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "HeaderMediaError";
+    this.status = 400;
+  }
+}
+
+const DEFAULT_MIME = { IMAGE: "image/jpeg", VIDEO: "video/mp4", DOCUMENT: "application/pdf" };
+const EXT = { "image/jpeg": "jpg", "image/png": "png", "video/mp4": "mp4", "video/3gpp": "3gp", "application/pdf": "pdf" };
+
+// 🟢 Downloads a file (the template's sample header) and uploads it with
+// POST /{PHONE_NUMBER_ID}/media. Returns the media id to send with.
+export async function uploadMediaFromUrl(url, headerFormat) {
+  const c = requireConfig("token", "phoneNumberId");
+
+  let res;
+  try {
+    res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+  } catch (err) {
+    throw new HeaderMediaError(`Couldn't download the template's header ${String(headerFormat).toLowerCase()} from Meta: ${err.message}`);
+  }
+  if (!res.ok) {
+    throw new HeaderMediaError(
+      `Couldn't download the template's header ${String(headerFormat).toLowerCase()} from Meta (HTTP ${res.status}). ` +
+        "Click Sync from Meta and try again, or use your own link."
+    );
+  }
+
+  let type = (res.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  if (!EXT[type]) type = DEFAULT_MIME[headerFormat] || type;
+  const buffer = Buffer.from(await res.arrayBuffer());
+
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("type", type);
+  form.append("file", new Blob([buffer], { type }), `header.${EXT[type] || "bin"}`);
+
+  const data = await graphRequest(`${c.baseUrl}/${c.apiVersion}/${c.phoneNumberId}/media`, {
+    method: "POST",
+    body: form,
+    token: c.token,
+  });
+  if (!data.id) throw new HeaderMediaError("Meta accepted the header upload but returned no media id");
+  return { id: data.id, mimeType: type };
 }
 
 // 🟢 POST /{PHONE_NUMBER_ID}/messages — send one approved template.

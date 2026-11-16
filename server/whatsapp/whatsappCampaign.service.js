@@ -20,6 +20,7 @@ import {
   normaliseCampaignParams,
   renderPreview,
   validateCampaignParams,
+  withHeaderMedia,
 } from "./whatsappTemplate.service.js";
 import { ACTIVE_CONTACT_WHERE, normalizePhone, optOutByPhone } from "./whatsappContact.service.js";
 
@@ -386,11 +387,12 @@ export async function sendTestMessage({ templateId, phone, ...input }) {
   if (errors.length) throw new CampaignError("Please fix the template values", 400, errors);
 
   const contact = { name: input.testName || "Customer", phone: to };
+  const sendParams = await withHeaderMedia(template, params);
   const { messageId } = await sendTemplateMessage({
     to,
     templateName: template.name,
     languageCode: template.language,
-    components: buildTemplateComponents(template, params, contact),
+    components: buildTemplateComponents(template, sendParams, contact),
   });
   return { messageId, to };
 }
@@ -483,7 +485,22 @@ async function processCampaign(campaign, deadline) {
     await failCampaign(campaign.id, "The template was deleted in Meta");
     return result;
   }
-  const params = campaignParams(campaign);
+  let params;
+  try {
+    params = await withHeaderMedia(template, campaignParams(campaign)); // template's own image, if no link
+  } catch (err) {
+    if (err instanceof MetaApiError && err.kind === "AUTH") {
+      await prisma.whatsAppCampaign.update({
+        where: { id: campaign.id },
+        data: { status: "PAUSED", lastError: `Paused — Meta rejected our credentials: ${err.message}` },
+      });
+    } else if (err instanceof MetaApiError && (err.kind === "TEMPORARY" || err.kind === "RATE_LIMIT")) {
+      console.warn(`⏸️  [whatsappCampaign] header upload for campaign ${campaign.id} failed, retrying next minute: ${err.message}`);
+    } else {
+      await failCampaign(campaign.id, err.message);
+    }
+    return result;
+  }
 
   const priorSuccesses = await prisma.whatsAppCampaignRecipient.count({
     where: { campaignId: campaign.id, messageId: { not: null } },

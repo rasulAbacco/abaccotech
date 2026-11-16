@@ -61,6 +61,8 @@ export const waApi = {
   // Templates
   templates: (all = false) => waRequest(`/templates${all ? "?all=1" : ""}`),
   syncTemplates: () => waRequest("/templates/sync", { method: "POST" }),
+  hideTemplate: (id) => waRequest(`/templates/${id}/hide`, { method: "PATCH" }),
+  unhideTemplate: (id) => waRequest(`/templates/${id}/unhide`, { method: "PATCH" }),
 
   // Contacts
   contacts: (params) => waRequest(`/contacts${q(params)}`),

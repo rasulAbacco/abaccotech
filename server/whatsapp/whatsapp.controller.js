@@ -4,7 +4,7 @@
 // Thin layer: reads the request, calls a service, maps errors to HTTP.
 
 import { MetaApiError, WhatsAppConfigError, checkConnection, getConfigStatus } from "./whatsappMeta.service.js";
-import { listTemplates, syncTemplatesFromMeta } from "./whatsappTemplate.service.js";
+import { listTemplates, setTemplateHidden, syncTemplatesFromMeta } from "./whatsappTemplate.service.js";
 import {
   addContact,
   countAudience,
@@ -78,6 +78,10 @@ export const getStatus = handle(async (req) => ({
 export const getTemplates = handle(async (req) => ({
   templates: await listTemplates({ includeAll: req.query.all === "1" }),
 }));
+
+// 🆕 Hide/unhide only changes the dashboard list — nothing is deleted here or in Meta.
+export const hideTemplate = handle(async (req) => ({ template: await setTemplateHidden(idParam(req), true) }));
+export const unhideTemplate = handle(async (req) => ({ template: await setTemplateHidden(idParam(req), false) }));
 
 export const syncTemplates = handle(async () => {
   const summary = await syncTemplatesFromMeta();

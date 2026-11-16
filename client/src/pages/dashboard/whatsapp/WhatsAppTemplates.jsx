@@ -5,10 +5,11 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, RefreshCw, Send, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, ExternalLink, Loader2, RefreshCw, Send, XCircle } from "lucide-react";
 import { waApi } from "./whatsappApi";
 import { TEMPLATE_STATUS, formatDateTime } from "./whatsappUtils";
 import {
+  secondaryBtn,
   ErrorBox,
   MessagePreview,
   Spinner,
@@ -22,6 +23,7 @@ import {
 const FILTERS = [
   { key: "usable", label: "Ready to use" },
   { key: "all", label: "All" },
+  { key: "hidden", label: "Hidden" }, // 🆕
 ];
 
 export default function WhatsAppTemplates() {
@@ -34,6 +36,7 @@ export default function WhatsAppTemplates() {
   const [filter, setFilter] = useState("usable");
   const [showDeleted, setShowDeleted] = useState(false);
   const [emptyResult, setEmptyResult] = useState(null); // Meta answered, but with 0 templates
+  const [togglingId, setTogglingId] = useState(null);
   const autoSynced = useRef(false);
 
   const load = useCallback(async () => {
@@ -85,8 +88,33 @@ export default function WhatsAppTemplates() {
     });
   }, [load, sync]);
 
-  const shown = filter === "usable" ? templates.filter((t) => t.usable) : templates;
-  const usableCount = templates.filter((t) => t.usable).length;
+  // 🆕 Hide / unhide — only a flag in our database; nothing is deleted here or in Meta.
+  const toggleHidden = async (t) => {
+    const hide = !t.hidden;
+    setTogglingId(t.id);
+    setError(null);
+    setNotice("");
+    setTemplates((list) => list.map((x) => (x.id === t.id ? { ...x, hidden: hide } : x))); // instant
+    try {
+      const { template } = hide ? await waApi.hideTemplate(t.id) : await waApi.unhideTemplate(t.id);
+      setTemplates((list) => list.map((x) => (x.id === t.id ? template : x)));
+      setNotice(
+        hide
+          ? `"${t.name}" hidden. Find it under the Hidden tab — it's still saved and still in Meta.`
+          : `"${t.name}" is back in your templates list.`
+      );
+    } catch (err) {
+      setTemplates((list) => list.map((x) => (x.id === t.id ? { ...x, hidden: t.hidden } : x))); // undo
+      setError(err);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const visible = templates.filter((t) => !t.hidden);
+  const hiddenList = templates.filter((t) => t.hidden);
+  const counts = { usable: visible.filter((t) => t.usable).length, all: visible.length, hidden: hiddenList.length };
+  const shown = filter === "hidden" ? hiddenList : filter === "usable" ? visible.filter((t) => t.usable) : visible;
 
   return (
     <WhatsAppShell
@@ -141,8 +169,9 @@ export default function WhatsAppTemplates() {
                 : "border-gray-800 text-gray-400 hover:text-white"
             }`}
           >
+            {f.key === "hidden" && <EyeOff className="w-3.5 h-3.5 inline -mt-0.5 mr-1.5" />}
             {f.label}
-            <span className="ml-1.5 text-gray-500">{f.key === "usable" ? usableCount : templates.length}</span>
+            <span className="ml-1.5 text-gray-500">{counts[f.key]}</span>
           </button>
         ))}
         <label className="flex items-center gap-2 text-sm text-gray-400 ml-auto cursor-pointer">
@@ -168,7 +197,11 @@ export default function WhatsAppTemplates() {
         </div>
       ) : shown.length === 0 ? (
         <div className={`${cardCls} p-10 text-center text-gray-400 text-sm`}>
-          None of your templates are approved and usable yet. Check their status under "All".
+          {filter === "hidden"
+            ? "No hidden templates. Use Hide on any template to move it here and keep your main list short."
+            : filter === "usable" && visible.length < templates.length
+              ? 'No visible templates are ready to use. Check the "Hidden" tab or unhide one.'
+              : 'None of your templates are approved and usable yet. Check their status under "All".'}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
@@ -176,6 +209,8 @@ export default function WhatsAppTemplates() {
             <TemplateCard
               key={t.id}
               template={t}
+              busy={togglingId === t.id}
+              onToggleHidden={() => toggleHidden(t)}
               onUse={() => navigate(`/whatsapp/campaigns/new?template=${t.id}`)}
             />
           ))}
@@ -185,14 +220,14 @@ export default function WhatsAppTemplates() {
   );
 }
 
-function TemplateCard({ template: t, onUse }) {
+function TemplateCard({ template: t, onUse, onToggleHidden, busy }) {
   const varCount =
     (t.header?.variables?.length || 0) +
     (t.body?.variables?.length || 0) +
     (t.buttons || []).filter((b) => b.hasVariable).length;
 
   return (
-    <div className={`${cardCls} p-5 flex flex-col`}>
+    <div className={`${cardCls} p-5 flex flex-col h-full`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
           <p className="text-white font-semibold break-all">{t.name}</p>
@@ -201,10 +236,24 @@ function TemplateCard({ template: t, onUse }) {
             {t.header && ` · ${t.header.format.toLowerCase()} header`}
           </p>
         </div>
-        <StatusBadge status={t.status} map={TEMPLATE_STATUS} />
+        <div className="flex items-center gap-2 shrink-0">
+          <StatusBadge status={t.status} map={TEMPLATE_STATUS} />
+          {!t.hidden && (
+            <button
+              onClick={onToggleHidden}
+              disabled={busy}
+              title="Hide from this list (not deleted)"
+              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white border border-gray-800 hover:border-gray-600 rounded-lg px-2 py-1 disabled:opacity-50"
+            >
+              <EyeOff className="w-3.5 h-3.5" />
+              Hide
+            </button>
+          )}
+        </div>
       </div>
 
-      <MessagePreview template={t} />
+      {/* Fixed height so every card lines up; long templates scroll inside */}
+      <MessagePreview template={t} height="h-[440px]" />
 
       <div className="mt-4 flex items-center justify-between gap-3 text-xs text-gray-500">
         <span>
@@ -214,7 +263,12 @@ function TemplateCard({ template: t, onUse }) {
       </div>
 
       <div className="pt-4 border-t border-gray-800 mt-auto">
-        {t.usable ? (
+        {t.hidden ? (
+          <button onClick={onToggleHidden} disabled={busy} className={`${secondaryBtn} w-full`}>
+            <Eye className="w-4 h-4" />
+            {busy ? "Restoring..." : "Unhide"}
+          </button>
+        ) : t.usable ? (
           <button onClick={onUse} className={`${primaryBtn} w-full`}>
             <Send className="w-4 h-4" />
             Use in a campaign

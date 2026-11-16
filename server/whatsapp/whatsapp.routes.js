@@ -36,6 +36,8 @@ router.get("/status", wa.getStatus);
 // Templates (created/approved in Meta, synced here)
 router.get("/templates", wa.getTemplates);
 router.post("/templates/sync", wa.syncTemplates);
+router.patch("/templates/:id/hide", wa.hideTemplate); // 🆕
+router.patch("/templates/:id/unhide", wa.unhideTemplate); // 🆕
 
 // Contacts
 router.get("/contacts", wa.getContacts);

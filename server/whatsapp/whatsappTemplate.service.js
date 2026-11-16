@@ -9,11 +9,23 @@
 //   4. builds the `components` array Meta needs for each contact.
 
 import prisma from "./prisma.js";
-import { fetchAllTemplates } from "./whatsappMeta.service.js";
+import { HeaderMediaError, fetchAllTemplates, fetchTemplateById, uploadMediaFromUrl } from "./whatsappMeta.service.js";
 
 const MEDIA_HEADERS = new Set(["IMAGE", "VIDEO", "DOCUMENT"]);
 const SUPPORTED_BUTTONS = new Set(["QUICK_REPLY", "URL", "PHONE_NUMBER", "COPY_CODE"]);
 const NAME_FALLBACK = "Customer";
+const MEDIA_REUSE_MS = 25 * 24 * 60 * 60_000; // Meta keeps uploaded media 30 days — refresh at 25
+
+// The sample image/video/PDF uploaded with the template in WhatsApp Manager.
+export function extractHeaderExampleUrl(components = []) {
+  const header = components.find((c) => (c.type || "").toUpperCase() === "HEADER");
+  if (!header || !MEDIA_HEADERS.has((header.format || "").toUpperCase())) return null;
+  const url = header.example?.header_handle?.[0];
+  return typeof url === "string" && /^https:\/\//i.test(url) ? url : null;
+}
+
+// Signed CDN links change on every fetch; the part before "?" identifies the file.
+const fileKey = (url) => (url ? String(url).split("?")[0] : null);
 
 // ── Parsing ─────────────────────────────────────────────────────────────
 
@@ -62,6 +74,7 @@ export function parseMetaTemplate(t) {
     parameterFormat,
     headerFormat,
     headerText,
+    headerExampleUrl: extractHeaderExampleUrl(components),
     headerVariables: extractVariables(headerText, parameterFormat),
     bodyText: body?.text || null,
     bodyVariables: extractVariables(body?.text, parameterFormat),
@@ -95,13 +108,20 @@ export function toTemplateDto(t) {
     status: t.status,
     parameterFormat: t.parameterFormat,
     header: t.headerFormat
-      ? { format: t.headerFormat, text: t.headerText, variables: t.headerVariables || [] }
+      ? {
+          format: t.headerFormat,
+          text: t.headerText,
+          variables: t.headerVariables || [],
+          exampleUrl: t.headerExampleUrl || null,
+        }
       : null,
     body: { text: t.bodyText, variables: t.bodyVariables || [] },
     footer: t.footerText,
     buttons: t.buttons || [],
     usable: t.status === "APPROVED" && !unsupportedReason,
     unsupportedReason,
+    hidden: Boolean(t.hidden),
+    hiddenAt: t.hiddenAt || null,
     lastSyncedAt: t.lastSyncedAt,
   };
 }
@@ -128,9 +148,15 @@ export async function syncTemplatesFromMeta() {
       }));
 
     if (existing) {
+      // Header image changed in Meta → the uploaded copy is stale.
+      const mediaChanged = fileKey(existing.headerExampleUrl) !== fileKey(data.headerExampleUrl);
       await prisma.whatsAppTemplate.update({
         where: { id: existing.id },
-        data: { ...data, lastSyncedAt: now },
+        data: {
+          ...data,
+          lastSyncedAt: now,
+          ...(mediaChanged ? { headerMediaId: null, headerMediaUploadedAt: null } : {}),
+        },
       });
       updated += 1;
     } else {
@@ -161,6 +187,17 @@ export async function listTemplates({ includeAll = false } = {}) {
     orderBy: [{ status: "asc" }, { name: "asc" }],
   });
   return templates.map(toTemplateDto);
+}
+
+// 🆕 Hide / unhide a template in the dashboard. Only this flag changes: the
+// template stays in our database and in Meta, sync keeps the flag, and
+// campaigns already using it keep sending.
+export async function setTemplateHidden(id, hidden) {
+  const template = await prisma.whatsAppTemplate.update({
+    where: { id },
+    data: { hidden, hiddenAt: hidden ? new Date() : null },
+  });
+  return toTemplateDto(template);
 }
 
 // ── Campaign values: validation + building the message ──────────────────
@@ -203,7 +240,12 @@ export function validateCampaignParams(template, params) {
 
   if (MEDIA_HEADERS.has(template.headerFormat)) {
     if (!params.headerImageUrl) {
-      errors.push(`This template needs a ${template.headerFormat.toLowerCase()} for its header`);
+      // Empty = use the template's own sample from Meta, when it has one.
+      if (!template.headerExampleUrl) {
+        errors.push(
+          `This template has no ${template.headerFormat.toLowerCase()} saved in Meta — add a link for its header`
+        );
+      }
     } else if (!isHttpsUrl(params.headerImageUrl)) {
       errors.push("Header media must be a public https:// link");
     }
@@ -241,12 +283,11 @@ export function buildTemplateComponents(template, params, contact) {
 
   const components = [];
 
-  if (MEDIA_HEADERS.has(template.headerFormat) && params.headerImageUrl) {
+  if (MEDIA_HEADERS.has(template.headerFormat) && (params.headerImageUrl || params.headerMediaId)) {
     const kind = template.headerFormat.toLowerCase(); // image | video | document
-    components.push({
-      type: "header",
-      parameters: [{ type: kind, [kind]: { link: params.headerImageUrl } }],
-    });
+    // Your own link wins; otherwise the template's own media (uploaded id).
+    const media = params.headerImageUrl ? { link: params.headerImageUrl } : { id: params.headerMediaId };
+    components.push({ type: "header", parameters: [{ type: kind, [kind]: media }] });
   } else if (template.headerFormat === "TEXT" && (template.headerVariables || []).length) {
     components.push({
       type: "header",
@@ -302,4 +343,44 @@ export function renderPreview(template, params, contact) {
     footer: template.footerText,
     buttons: (template.buttons || []).map((b) => b.text),
   };
+}
+
+// 🆕 Media id for the template's own header (image/video/PDF from Meta).
+// Uploaded once and reused by every campaign until it's 25 days old or the
+// template's image changes in Meta.
+export async function getTemplateHeaderMediaId(template) {
+  if (
+    template.headerMediaId &&
+    template.headerMediaUploadedAt &&
+    Date.now() - new Date(template.headerMediaUploadedAt).getTime() < MEDIA_REUSE_MS
+  ) {
+    return template.headerMediaId;
+  }
+
+  // The saved sample link is signed and can expire — ask Meta for a fresh one.
+  let url = template.headerExampleUrl;
+  try {
+    const fresh = await fetchTemplateById(template.metaTemplateId);
+    url = extractHeaderExampleUrl(fresh.components) || url;
+  } catch {
+    /* fall back to the saved link */
+  }
+  if (!url) {
+    throw new HeaderMediaError(
+      `Template "${template.name}" has no ${String(template.headerFormat).toLowerCase()} saved in Meta — add a link for its header`
+    );
+  }
+
+  const { id } = await uploadMediaFromUrl(url, template.headerFormat);
+  await prisma.whatsAppTemplate.update({
+    where: { id: template.id },
+    data: { headerMediaId: id, headerMediaUploadedAt: new Date(), headerExampleUrl: url },
+  });
+  return id;
+}
+
+// Adds headerMediaId to a campaign's values when it uses the template's own media.
+export async function withHeaderMedia(template, params) {
+  if (!MEDIA_HEADERS.has(template.headerFormat) || params.headerImageUrl) return params;
+  return { ...params, headerMediaId: await getTemplateHeaderMediaId(template) };
 }

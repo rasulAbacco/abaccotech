@@ -57,6 +57,8 @@ export default function WhatsAppCampaignForm() {
   const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [values, setValues] = useState(emptyValues(null));
+  // "template" = send the image/video/PDF saved with the template in Meta; "link" = your own link
+  const [mediaMode, setMediaMode] = useState("template");
   const [audienceTag, setAudienceTag] = useState("");
   const [audienceCount, setAudienceCount] = useState(null);
   const [sendMode, setSendMode] = useState("now"); // now | schedule | draft
@@ -79,7 +81,9 @@ export default function WhatsAppCampaignForm() {
           isEdit ? waApi.campaign(id) : Promise.resolve(null),
         ]);
         if (!alive) return;
-        const usable = tplRes.templates.filter((t) => t.usable);
+        // Hidden templates stay out of the dropdown, except the one a draft already uses.
+        const draftTemplateId = campRes?.campaign?.templateId;
+        const usable = tplRes.templates.filter((t) => t.usable && (!t.hidden || t.id === draftTemplateId));
         setTemplates(usable);
         setTags(tagRes.tags.filter((t) => t.tag));
 
@@ -91,6 +95,7 @@ export default function WhatsAppCampaignForm() {
           }
           setName(c.name);
           setTemplateId(c.templateId ? String(c.templateId) : "");
+          setMediaMode(c.headerImageUrl ? "link" : "template");
           setValues({
             headerImageUrl: c.headerImageUrl || "",
             headerParams: c.headerParams || [],
@@ -104,6 +109,7 @@ export default function WhatsAppCampaignForm() {
           if (first) {
             setTemplateId(String(first.id));
             setValues(emptyValues(first));
+            setMediaMode(first.header?.exampleUrl ? "template" : "link");
           }
         }
       } catch (err) {
@@ -134,6 +140,7 @@ export default function WhatsAppCampaignForm() {
     setTemplateId(value);
     const t = templates.find((x) => x.id === Number(value));
     setValues(emptyValues(t));
+    setMediaMode(t?.header?.exampleUrl ? "template" : "link");
   };
 
   const setParam = (key, index, value) =>
@@ -146,7 +153,7 @@ export default function WhatsAppCampaignForm() {
   const payload = () => ({
     name: name.trim(),
     templateId: Number(templateId),
-    headerImageUrl: values.headerImageUrl.trim(),
+    headerImageUrl: mediaMode === "link" ? values.headerImageUrl.trim() : "",
     headerParams: values.headerParams,
     bodyParams: values.bodyParams,
     buttonParams: values.buttonParams,
@@ -278,20 +285,51 @@ export default function WhatsAppCampaignForm() {
                 {isMedia && (
                   <div>
                     <label className="block text-sm text-gray-300 mb-1.5">
-                      Header {template.header.format.toLowerCase()} link
+                      Header {template.header.format.toLowerCase()}
                     </label>
-                    <input
-                      required
-                      type="url"
-                      value={values.headerImageUrl}
-                      onChange={(e) => setValues({ ...values, headerImageUrl: e.target.value })}
-                      placeholder="https://..."
-                      className={inputCls}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Must be a public https:// link Meta can open ({MEDIA_HINT[template.header.format]}). Your R2 public
-                      URL works well.
-                    </p>
+                    {template.header.exampleUrl && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                        {[
+                          { key: "template", label: `Use the template's ${template.header.format.toLowerCase()}` },
+                          { key: "link", label: "Use a different link" },
+                        ].map((o) => (
+                          <button
+                            type="button"
+                            key={o.key}
+                            onClick={() => setMediaMode(o.key)}
+                            className={`py-2.5 px-3 rounded-xl border text-sm transition ${
+                              mediaMode === o.key
+                                ? "bg-green-500/15 border-green-500/50 text-green-300"
+                                : "border-gray-700 text-gray-400 hover:text-white"
+                            }`}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {mediaMode === "template" && template.header.exampleUrl ? (
+                      <p className="text-xs text-gray-400">
+                        The {template.header.format.toLowerCase()} you uploaded with this template in WhatsApp Manager is
+                        sent to everyone (shown in the preview). To change it for all campaigns, edit the template in
+                        Meta and sync again.
+                      </p>
+                    ) : (
+                      <>
+                        <input
+                          required
+                          type="url"
+                          value={values.headerImageUrl}
+                          onChange={(e) => setValues({ ...values, headerImageUrl: e.target.value })}
+                          placeholder="https://..."
+                          className={inputCls}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Must be a public https:// link Meta can open ({MEDIA_HINT[template.header.format]}). Your R2
+                          public URL works well.
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -429,7 +467,15 @@ export default function WhatsAppCampaignForm() {
             <div className="xl:sticky xl:top-8 space-y-6">
               <section className={`${cardCls} p-6`}>
                 <h2 className="text-lg font-semibold text-white mb-4">Preview</h2>
-                <MessagePreview template={template} values={values} contactName="Ravi" />
+                <MessagePreview
+                  template={template}
+                  values={{
+                    ...values,
+                    headerImageUrl: mediaMode === "link" ? values.headerImageUrl : "",
+                    useTemplateMedia: mediaMode === "template",
+                  }}
+                  contactName="Ravi"
+                />
               </section>
 
               <section className={`${cardCls} p-6 space-y-3`}>

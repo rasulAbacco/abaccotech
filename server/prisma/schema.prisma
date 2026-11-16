@@ -164,29 +164,35 @@ model WhatsAppContact {
 // Stores each template's structure so the dashboard can build the right
 // form (header media / variables / buttons) for ANY template.
 model WhatsAppTemplate {
-  id              Int      @id @default(autoincrement())
-  metaTemplateId  String   @unique // template id in Meta
-  name            String
-  language        String // e.g. "en", "en_US"
-  category        String? // MARKETING | UTILITY | AUTHENTICATION
-  status          String // APPROVED | PENDING | REJECTED | PAUSED | DISABLED | DELETED (deleted = gone from Meta)
-  parameterFormat String   @default("POSITIONAL") // POSITIONAL ({{1}}) | NAMED ({{customer_name}})
-  headerFormat    String? // TEXT | IMAGE | VIDEO | DOCUMENT | LOCATION | null (no header)
-  headerText      String? // header text when headerFormat = TEXT
-  headerVariables Json? // variable names inside a TEXT header, e.g. ["1"]
-  bodyText        String?
-  bodyVariables   Json? // e.g. ["1","2"] or ["customer_name","offer"]
-  footerText      String?
-  buttons         Json? // [{ index, type, text, url?, hasVariable }]
-  components      Json // raw components exactly as Meta returned them
-  lastSyncedAt    DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                    Int       @id @default(autoincrement())
+  metaTemplateId        String    @unique // template id in Meta
+  name                  String
+  language              String // e.g. "en", "en_US"
+  category              String? // MARKETING | UTILITY | AUTHENTICATION
+  status                String // APPROVED | PENDING | REJECTED | PAUSED | DISABLED | DELETED (deleted = gone from Meta)
+  parameterFormat       String    @default("POSITIONAL") // POSITIONAL ({{1}}) | NAMED ({{customer_name}})
+  headerFormat          String? // TEXT | IMAGE | VIDEO | DOCUMENT | LOCATION | null (no header)
+  headerText            String? // header text when headerFormat = TEXT
+  headerExampleUrl      String? // 🆕 sample image/video/PDF uploaded with the template in Meta (signed link, refreshed on sync)
+  headerMediaId         String? // 🆕 that sample uploaded to WhatsApp media storage — reused for every send
+  headerMediaUploadedAt DateTime? // 🆕 Meta keeps uploaded media ~30 days; re-uploaded before then
+  hidden                Boolean   @default(false) // 🆕 hidden from the dashboard list only — kept here and in Meta
+  hiddenAt              DateTime? // 🆕 when an admin hid it
+  headerVariables       Json? // variable names inside a TEXT header, e.g. ["1"]
+  bodyText              String?
+  bodyVariables         Json? // e.g. ["1","2"] or ["customer_name","offer"]
+  footerText            String?
+  buttons               Json? // [{ index, type, text, url?, hasVariable }]
+  components            Json // raw components exactly as Meta returned them
+  lastSyncedAt          DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   campaigns WhatsAppCampaign[]
 
   @@unique([name, language])
   @@index([status])
+  @@index([hidden])
 }
 
 model WhatsAppCampaign {

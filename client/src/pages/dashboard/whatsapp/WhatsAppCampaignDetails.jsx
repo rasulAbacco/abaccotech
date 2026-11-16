@@ -448,7 +448,9 @@ function Legend({ cls, label }) {
 // the same shape the templates list uses.
 function templateDto(t) {
   return {
-    header: t.headerFormat ? { format: t.headerFormat, text: t.headerText, variables: t.headerVariables || [] } : null,
+    header: t.headerFormat
+      ? { format: t.headerFormat, text: t.headerText, variables: t.headerVariables || [], exampleUrl: t.headerExampleUrl || null }
+      : null,
     body: { text: t.bodyText, variables: t.bodyVariables || [] },
     footer: t.footerText,
     buttons: t.buttons || [],

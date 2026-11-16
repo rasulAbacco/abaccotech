@@ -239,21 +239,30 @@ const BUTTON_ICONS = { URL: ExternalLink, QUICK_REPLY: Reply, PHONE_NUMBER: Phon
 
 // WhatsApp-style bubble showing how the message will look for one contact.
 // `values` = { headerImageUrl, headerParams, bodyParams } as typed in the form.
-export function MessagePreview({ template, values = {}, contactName = "Customer" }) {
+// `height` (e.g. "h-[440px]") = fixed-height box that scrolls when the message is longer.
+export function MessagePreview({ template, values = {}, contactName = "Customer", height }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const url = values.headerImageUrl || "";
+  // Your own link first, otherwise the image saved with the template in Meta.
+  const header = template?.header;
+  const fromTemplate = !values.headerImageUrl && values.useTemplateMedia !== false && Boolean(header?.exampleUrl);
+  const url = values.headerImageUrl || (fromTemplate ? header.exampleUrl : "");
   useEffect(() => setImgFailed(false), [url]);
 
   if (!template) {
     return <div className="text-sm text-gray-500 italic">Pick a template to see the preview.</div>;
   }
 
-  const header = template.header;
   const isHttps = /^https:\/\//i.test(url);
   const MediaIcon = header?.format === "VIDEO" ? Video : header?.format === "DOCUMENT" ? FileText : ImageIcon;
 
   return (
-    <div className="bg-[#0b141a] rounded-2xl p-4 border border-gray-800">
+    <div
+      className={`bg-[#0b141a] rounded-2xl p-4 border border-gray-800 ${
+        height
+          ? `${height} overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:#374151_transparent]`
+          : ""
+      }`}
+    >
       <div className="max-w-sm">
         <div className="bg-[#202c33] rounded-xl rounded-tl-sm overflow-hidden shadow">
           {header && header.format !== "TEXT" && (
@@ -262,16 +271,32 @@ export function MessagePreview({ template, values = {}, contactName = "Customer"
                 <img
                   src={url}
                   alt="Header"
+                  referrerPolicy="no-referrer"
                   onError={() => setImgFailed(true)}
-                  className="w-full max-h-56 object-cover rounded-lg"
+                  className="w-full max-h-64 object-cover rounded-lg"
+                />
+              ) : header.format === "VIDEO" && isHttps && !imgFailed ? (
+                <video
+                  src={url}
+                  controls
+                  muted
+                  preload="metadata"
+                  onError={() => setImgFailed(true)}
+                  className="w-full max-h-64 rounded-lg bg-black"
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center gap-1 h-32 rounded-lg bg-gray-700/40 text-gray-400 text-xs">
+                <div className="flex flex-col items-center justify-center gap-1 h-32 rounded-lg bg-gray-700/40 text-gray-400 text-xs text-center px-4">
                   <MediaIcon className="w-7 h-7" />
                   {imgFailed
-                    ? "Image couldn't be loaded from this link"
+                    ? fromTemplate
+                      ? "Preview link from Meta has expired — click Sync from Meta to refresh it"
+                      : "Couldn't load this link — check it's public"
                     : isHttps
-                      ? `${header.format.toLowerCase()} from your link`
+                      ? header.format === "DOCUMENT"
+                        ? fromTemplate
+                          ? "PDF saved with the template"
+                          : "PDF from your link"
+                        : `${header.format.toLowerCase()} from your link`
                       : `${header.format.toLowerCase()} header — add a link`}
                 </div>
               )}
